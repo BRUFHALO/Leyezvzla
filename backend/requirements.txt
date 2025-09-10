@@ -1,0 +1,97 @@
+fastapi
+uvicorn
+pymongo
+pydantic
+python-dotenv
+
+
+   {
+  "_id": {
+    "$oid": "615ad2e1aabbccddeeff1234"
+  },
+  "cliente": {
+    "nombre": "Cliente Ejemplo",
+    "email": "cliente.ejemplo@gmail.com"
+  },
+  "fecha": {
+    "fecha_completa": "8 de septiembre, 2025 a las 07:56",
+    "timestamp": {
+      "$date": "2025-09-08T07:56:00.000Z"
+    }
+  },
+  "leyes_seleccionadas": {
+    "cantidad": 5,
+    "items": [
+      {
+        "nombre": "CONSTITUCIÓN",
+        "grosor": "Alto",
+        "precio": 10
+      },
+      {
+        "nombre": "CÓDIGO PENAL",
+        "grosor": "Alto",
+        "precio": 10
+      },
+      {
+        "nombre": "CÓDIGO CIVIL",
+        "grosor": "Muy Alto",
+        "precio": 20
+      },
+      {
+        "nombre": "CÓDIGO DE TRABAJO",
+        "grosor": "Muy Alto",
+        "precio": 15
+      },
+      {
+        "nombre": "LEY DE ARBITRAJE Y MEDIACIÓN",
+        "grosor": "Bajo",
+        "precio": 6
+      }
+    ],
+    "subtotal": 61
+  },
+  "agrupamiento_volumenes": {
+    "cantidad_volumenes": 5,
+    "volumenes": [
+      {
+        "numero": 1,
+        "leyes": "CONSTITUCIÓN"
+      },
+      {
+        "numero": 2,
+        "leyes": "CÓDIGO CIVIL"
+      },
+      {
+        "numero": 3,
+        "leyes": "CÓDIGO PENAL"
+      },
+      {
+        "numero": 4,
+        "leyes": "CÓDIGO DE TRABAJO"
+      },
+      {
+        "numero": 5,
+        "leyes": "LEY DE ARBITRAJE Y MEDIACIÓN"
+      }
+    ],
+    "costo_encuadernacion": {
+      "cantidad": 5,
+      "costo_unitario": 10,
+      "total": 50
+    }
+  },
+  "resumen_costo": {
+    "subtotal_leyes": 61,
+    "costo_encuadernacion": 50,
+    "total": 111
+  },
+  "opcion_pago": {
+    "tipo": "3 cuotas",
+    "valor_cuota": 37,
+    "cantidad_cuotas": 3
+  },
+  "fecha_creacion": {
+    "$date": "2025-09-08T07:56:00.000Z"
+  },
+  "estado": "pendiente"
+}
