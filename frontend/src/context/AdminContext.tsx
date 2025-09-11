@@ -10,18 +10,12 @@ import {
   getLawsWithMongoIds 
 } from '../data/lawsData';
 import { adminCredentials } from '../data/adminData';
-
-export interface CustomerSelection {
-  id: string;
-  customerEmail: string;
-  selectedLaws: Law[];
-  totalPrice: number;
-  bindingCost: number;
-  grandTotal: number;
-  paymentOption: number;
-  timestamp: Date;
-  volumes: Law[][];
-}
+import { 
+  Quotation, 
+  saveQuotationToBackend, 
+  getQuotationsFromBackend,
+  deleteQuotationFromBackend 
+} from '../data/quotationsData';
 
 interface AdminContextType {
   isAuthenticated: boolean;
@@ -42,6 +36,23 @@ interface AdminContextType {
   error: string | null;
   refreshLaws: () => Promise<void>;
   lawsWithMongoIds: (Law & { mongoId: string })[];
+  // Nuevas propiedades para quotations
+  quotations: Quotation[];
+  addQuotation: (quotation: Omit<Quotation, '_id'>) => Promise<Quotation>;
+  loadQuotations: () => Promise<void>;
+  removeQuotation: (id: string) => Promise<void>;
+}
+
+export interface CustomerSelection {
+  id: string;
+  customerEmail: string;
+  selectedLaws: Law[];
+  totalPrice: number;
+  bindingCost: number;
+  grandTotal: number;
+  paymentOption: number;
+  timestamp: Date;
+  volumes: Law[][];
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -81,10 +92,42 @@ export const AdminProvider: React.FC<{
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [customerSelections, setCustomerSelections] = useState<CustomerSelection[]>([createSampleCustomerSelection()]);
+  // Mover el estado de quotations dentro del componente
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
 
   useEffect(() => {
     refreshLaws();
+    loadQuotations(); // Cargar quotations al inicializar
   }, []);
+
+  // Mover las funciones de quotations dentro del componente
+  const addQuotation = async (quotation: Omit<Quotation, '_id'>): Promise<Quotation> => {
+    try {
+      const newQuotation = await saveQuotationToBackend(quotation);
+      setQuotations(prev => [newQuotation, ...prev]);
+      return newQuotation;
+    } catch (error: any) {
+      throw new Error(error.message || 'No se pudo guardar la cotización');
+    }
+  };
+
+  const loadQuotations = async (): Promise<void> => {
+    try {
+      const quotationsData = await getQuotationsFromBackend();
+      setQuotations(quotationsData);
+    } catch (error: any) {
+      console.error('Error al cargar cotizaciones:', error);
+    }
+  };
+
+  const removeQuotation = async (id: string): Promise<void> => {
+    try {
+      await deleteQuotationFromBackend(id);
+      setQuotations(prev => prev.filter(q => q._id?.$oid !== id));
+    } catch (error: any) {
+      throw new Error(error.message || 'No se pudo eliminar la cotización');
+    }
+  };
 
   const refreshLaws = async (): Promise<void> => {
     try {
@@ -129,7 +172,6 @@ export const AdminProvider: React.FC<{
       await createLawInBackend(newLaw);
       await refreshLaws();
       
-      // Encontrar la ley recién creada
       const lawsWithIds = await getLawsWithMongoIds();
       const createdLaw = lawsWithIds.find(law => 
         law.name === newLaw.name && 
@@ -199,7 +241,11 @@ export const AdminProvider: React.FC<{
       loading,
       error,
       refreshLaws,
-      lawsWithMongoIds
+      lawsWithMongoIds,
+      quotations,
+      addQuotation,
+      loadQuotations,
+      removeQuotation
     }}>
       {children}
     </AdminContext.Provider>
