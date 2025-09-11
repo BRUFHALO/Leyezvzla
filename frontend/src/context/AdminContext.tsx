@@ -41,6 +41,7 @@ interface AdminContextType {
   addQuotation: (quotation: Omit<Quotation, '_id'>) => Promise<Quotation>;
   loadQuotations: () => Promise<void>;
   removeQuotation: (id: string) => Promise<void>;
+  
 }
 
 export interface CustomerSelection {
@@ -87,7 +88,14 @@ export const AdminProvider: React.FC<{
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [laws, setLaws] = useState<Law[]>([]);
   const [lawsWithMongoIds, setLawsWithMongoIds] = useState<(Law & { mongoId: string })[]>([]);
-  const [paymentOptions, setPaymentOptions] = useState<number[]>([1, 2, 3, 4]);
+  const [paymentOptions, setPaymentOptions] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('paymentOptions');
+      return saved ? JSON.parse(saved) : [1, 2, 3, 4];
+    } catch {
+      return [1, 2, 3, 4];
+    }
+  });
   const [veryThickLawIds, setVeryThickLawIds] = useState<number[]>(thickLawIds);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +106,29 @@ export const AdminProvider: React.FC<{
   useEffect(() => {
     refreshLaws();
     loadQuotations(); // Cargar quotations al inicializar
+  }, []);
+
+    // Persistir paymentOptions en localStorage cuando cambien
+  useEffect(() => {
+    localStorage.setItem('paymentOptions', JSON.stringify(paymentOptions));
+  }, [paymentOptions]);
+
+   // Persistir veryThickLawIds en localStorage cuando cambien
+  useEffect(() => {
+    localStorage.setItem('veryThickLawIds', JSON.stringify(veryThickLawIds));
+  }, [veryThickLawIds]);
+   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('veryThickLawIds');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setVeryThickLawIds(parsed);
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar veryThickLawIds:', error);
+    }
   }, []);
 
   // Mover las funciones de quotations dentro del componente
@@ -158,6 +189,8 @@ export const AdminProvider: React.FC<{
     setIsAuthenticated(false);
   };
 
+  
+
   const updateLaw = async (updatedLaw: Law, mongoId: string): Promise<void> => {
     try {
       await updateLawInBackend(mongoId, updatedLaw);
@@ -197,9 +230,41 @@ export const AdminProvider: React.FC<{
     }
   };
 
-  const updatePaymentOptions = (options: number[]) => {
-    setPaymentOptions(options);
+ const updatePaymentOptions = (options: number[]) => {
+  // Validar que las opciones sean números válidos
+  const validOptions = options.filter(opt => typeof opt === 'number' && opt > 0);
+  setPaymentOptions(validOptions);
+};
+
+
+useEffect(() => {
+  const handleStorageChange = (e: StorageEvent) => {
+    if (e.key === 'paymentOptions' && e.newValue) {
+      try {
+        const newOptions = JSON.parse(e.newValue);
+        if (Array.isArray(newOptions)) {
+          setPaymentOptions(newOptions);
+        }
+      } catch (error) {
+        console.error('Error al sincronizar paymentOptions:', error);
+      }
+    }
+    
+    if (e.key === 'veryThickLawIds' && e.newValue) {
+      try {
+        const newIds = JSON.parse(e.newValue);
+        if (Array.isArray(newIds)) {
+          setVeryThickLawIds(newIds);
+        }
+      } catch (error) {
+        console.error('Error al sincronizar veryThickLawIds:', error);
+      }
+    }
   };
+
+  window.addEventListener('storage', handleStorageChange);
+  return () => window.removeEventListener('storage', handleStorageChange);
+}, []);
 
   const updateVeryThickLawIds = (ids: number[]) => {
     setVeryThickLawIds(ids);

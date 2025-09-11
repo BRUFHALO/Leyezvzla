@@ -46,7 +46,7 @@ export const AdminCustomerSelections: React.FC = () => {
         item.nombre.toLowerCase().includes(searchTerm.toLowerCase())
       )
     )
-    .sort((a, b) => {
+     .sort((a, b) => {
       const dateA = new Date(a.fecha_creacion);
       const dateB = new Date(b.fecha_creacion);
 
@@ -63,7 +63,6 @@ export const AdminCustomerSelections: React.FC = () => {
         a.resumen_costo.total - b.resumen_costo.total : 
         b.resumen_costo.total - a.resumen_costo.total;
     });
-
   const handleSort = (field: 'fecha_creacion' | 'customerEmail' | 'grandTotal') => {
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -219,13 +218,13 @@ export const AdminCustomerSelections: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSelections.map(quotation => (
+              {filteredSelections.map(quotation => (             
                 <tr key={quotation._id} className={`hover:bg-gray-50 ${selectedSelection === quotation._id ? 'bg-blue-50' : ''}`}>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center">
                       <CalendarIcon size={16} className="text-gray-400 mr-2" />
                       <span className="text-sm text-gray-900">
-                        {formatDate(quotation.fecha_creacion)}
+                        {quotation.fecha.fecha_completa}
                       </span>
                     </div>
                   </td>
@@ -321,7 +320,7 @@ export const AdminCustomerSelections: React.FC = () => {
                       <div className="flex items-center">
                         <CalendarIcon size={16} className="text-gray-500 mr-2" />
                         <p className="text-lg text-gray-800">
-                          {formatDate(quotation.fecha_creacion)}
+                          { quotation.fecha.fecha_completa}
                         </p>
                       </div>
                     </div>

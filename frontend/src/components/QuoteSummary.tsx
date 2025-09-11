@@ -4,6 +4,7 @@ import { BookOpenIcon, BookmarkIcon, CreditCardIcon, AlertTriangleIcon, MailIcon
 import { useAdmin } from '../context/AdminContext';
 import { Quotation, saveQuotationToBackend } from '../data/quotationsData';
 
+
 interface QuoteSummaryProps {
   selectedLaws: Law[];
   totalPrice: number;
@@ -74,10 +75,13 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
   const bindingCost = volumes.length * 10;
   const grandTotal = totalPrice + bindingCost;
 
-  const paymentOptions = availablePaymentOptions.map(installments => ({
+ const paymentOptions = availablePaymentOptions
+  .filter(installments => installments > 0) // Filtra valores inválidos
+  .map(installments => ({
     installments,
-    amount: Math.ceil(grandTotal / installments)
-  }));
+    amount: installments > 0 ? Math.ceil(grandTotal / installments) : grandTotal
+  }))
+  .sort((a, b) => a.installments - b.installments)
 
   const hasVeryThickLaws = selectedLaws.some(law => law.thickness === 'very_high');
 
