@@ -34,6 +34,11 @@ export function App() {
     setSelectedLawIds(prev => prev.includes(lawId) ? prev.filter(id => id !== lawId) : [...prev, lawId]);
   };
 
+  // Función para resetear la selección
+  const handleResetSelection = () => {
+    setSelectedLawIds([]);
+  };
+
   // Get full law objects for selected IDs
   const selectedLaws = useMemo(() => {
     return currentLaws.filter(law => selectedLawIds.includes(law.id));
@@ -54,6 +59,7 @@ export function App() {
       </div>
     );
   }
+  
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -82,7 +88,11 @@ export function App() {
             selectedLaws={selectedLawIds} 
             onSelectLaw={handleSelectLaw} 
           />
-          <QuoteSummary selectedLaws={selectedLaws} totalPrice={totalPrice} />
+          <QuoteSummary 
+            selectedLaws={selectedLaws} 
+            totalPrice={totalPrice} 
+            onResetSelection={handleResetSelection} 
+          />
         </div>
       </main>
       <footer className="bg-gray-800 text-gray-300 mt-12">

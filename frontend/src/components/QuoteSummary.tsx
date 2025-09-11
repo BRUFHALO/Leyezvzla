@@ -7,11 +7,13 @@ import { Quotation, saveQuotationToBackend } from '../data/quotationsData';
 interface QuoteSummaryProps {
   selectedLaws: Law[];
   totalPrice: number;
+  onResetSelection: () => void; // Nueva prop para resetear la selección
 }
 
 export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
   selectedLaws,
-  totalPrice
+  totalPrice,
+  onResetSelection // Recibimos la función para resetear
 }) => {
   const {
     paymentOptions: availablePaymentOptions,
@@ -147,15 +149,18 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
       const quotationData = createQuotationData();
       await saveQuotationToBackend(quotationData);
       
+      // Mostrar mensaje de confirmación
       setShowConfirmation(true);
       setShowEmailForm(false);
       
-      // Resetear formulario
+      // Resetear formulario y selección
       setEmail('');
       setCustomerName('');
       setSelectedPaymentOption(null);
+      onResetSelection(); // Llamamos a la función para resetear la selección
       
-      setTimeout(() => setShowConfirmation(false), 3000);
+      // Ocultar mensaje de confirmación después de 3 segundos
+      setTimeout(() => setShowConfirmation(false), 6000);
     } catch (error) {
       console.error('Error al guardar cotización:', error);
       alert('Error al guardar la cotización. Por favor, intente nuevamente.');
@@ -181,7 +186,7 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
       {showConfirmation && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md flex items-center">
           <div className="mr-2 flex-shrink-0">✓</div>
-          <p>¡Cotización guardada correctamente!</p>
+          <p>¡Cotización guardada correctamente! Los datos han sido reseteados.</p>
         </div>
       )}
 
