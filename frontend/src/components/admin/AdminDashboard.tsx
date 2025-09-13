@@ -4,9 +4,11 @@ import { useAdmin } from '../../context/AdminContext';
 import { AdminLawCatalog } from './AdminLawCatalog';
 import { AdminPaymentOptions } from './AdminPaymentOptions';
 import { AdminCustomerSelections } from './AdminCustomerSelections';
-import { BookIcon, CreditCardIcon, HomeIcon, LogOutIcon, UsersIcon } from 'lucide-react';
+import { AdminEncuadernacion } from './AdminEncuadernacion';
+import { AdminDeliveredQuotations } from './AdminDeliveredQuotations';
+import { BookIcon, CreditCardIcon, HomeIcon, LogOutIcon, UsersIcon, PackageIcon } from 'lucide-react';
 export const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'laws' | 'payments' | 'customers'>('laws');
+  const [activeTab, setActiveTab] = useState<'laws' | 'payments' | 'customers' | 'encuadernacion' | 'delivered'>('laws');
   const {
     logout
   } = useAdmin();
@@ -53,11 +55,31 @@ export const AdminDashboard: React.FC = () => {
               <UsersIcon size={18} className="mr-1.5" />
               Cotizaciones de Clientes
             </button>
+            <button
+              onClick={() => setActiveTab('encuadernacion')}
+              className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+                activeTab === 'encuadernacion' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <PackageIcon className="mr-2" size={20} />
+              Encuadernación
+            </button>
+            <button
+              onClick={() => setActiveTab('delivered')}
+              className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+                activeTab === 'delivered' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <PackageIcon className="mr-2" size={20} />
+              Entregadas
+            </button>
           </div>
         </div>
         {activeTab === 'laws' && <AdminLawCatalog />}
         {activeTab === 'payments' && <AdminPaymentOptions />}
         {activeTab === 'customers' && <AdminCustomerSelections />}
+        {activeTab === 'encuadernacion' && <AdminEncuadernacion />}
+        {activeTab === 'delivered' && <AdminDeliveredQuotations />}
       </main>
     </div>;
 };

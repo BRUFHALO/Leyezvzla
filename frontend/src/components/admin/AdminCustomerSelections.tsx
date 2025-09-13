@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../context/AdminContext';
-import { MailIcon, CalendarIcon, SearchIcon, ChevronDownIcon, ChevronUpIcon, TrashIcon, EyeIcon, XIcon, RefreshCwIcon } from 'lucide-react';
+import { MailIcon, CalendarIcon, SearchIcon, ChevronDownIcon, ChevronUpIcon, TrashIcon, EyeIcon, XIcon, RefreshCwIcon, CheckCircleIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { thicknessOptions } from '../../data/adminData';
@@ -12,7 +12,8 @@ export const AdminCustomerSelections: React.FC = () => {
     loadQuotations,
     quotations,
     loading,
-    error
+    error,
+    updateQuotationStatus
   } = useAdmin();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,8 +38,9 @@ export const AdminCustomerSelections: React.FC = () => {
     initializeQuotations();
   }, []);
 
-  // Filtrar y ordenar cotizaciones
+  // Filtrar cotizaciones pendientes y ordenar
   const filteredSelections = quotations
+    .filter(quotation => quotation.estado === 'pendiente')
     .filter(quotation => 
       quotation.cliente.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
       quotation.cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -75,12 +77,29 @@ export const AdminCustomerSelections: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('¿Está seguro que desea eliminar esta cotización?')) {
       try {
+        setLocalLoading(true);
         await removeQuotation(id);
         if (selectedSelection === id) {
           setSelectedSelection(null);
         }
+        // La tabla se actualiza automáticamente porque removeQuotation actualiza el estado
       } catch (error: any) {
         alert('Error al eliminar: ' + error.message);
+      } finally {
+        setLocalLoading(false);
+      }
+    }
+  };
+
+  const handleMarkAsDelivered = async (id: string) => {
+    if (window.confirm('¿Está seguro que desea marcar esta cotización como entregada?')) {
+      try {
+        await updateQuotationStatus(id, 'entregado');
+        if (selectedSelection === id) {
+          setSelectedSelection(null);
+        }
+      } catch (error: any) {
+        alert('Error al marcar como entregado: ' + error.message);
       }
     }
   };
@@ -219,7 +238,7 @@ export const AdminCustomerSelections: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredSelections.map(quotation => (             
-                <tr key={quotation._id} className={`hover:bg-gray-50 ${selectedSelection === quotation._id ? 'bg-blue-50' : ''}`}>
+                <tr key={typeof quotation._id === 'object' ? quotation._id.$oid : quotation._id} className={`hover:bg-gray-50 ${selectedSelection === (typeof quotation._id === 'object' ? quotation._id.$oid : quotation._id) ? 'bg-blue-50' : ''}`}>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center">
                       <CalendarIcon size={16} className="text-gray-400 mr-2" />
@@ -260,14 +279,14 @@ export const AdminCustomerSelections: React.FC = () => {
                   <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <button 
-                        onClick={() => setSelectedSelection(quotation._id)} 
+                        onClick={() => setSelectedSelection(typeof quotation._id === 'object' ? quotation._id.$oid : quotation._id || '')} 
                         className="text-blue-600 hover:text-blue-800" 
                         title="Ver detalles"
                       >
                         <EyeIcon size={16} />
                       </button>
                       <button 
-                        onClick={() => handleDelete(quotation._id || '')} 
+                        onClick={() => handleDelete(typeof quotation._id === 'object' ? quotation._id.$oid : quotation._id || '')} 
                         className="text-red-600 hover:text-red-800" 
                         title="Eliminar"
                       >
@@ -295,8 +314,8 @@ export const AdminCustomerSelections: React.FC = () => {
               </button>
             </div>
 
-            {quotations.find(q => q._id === selectedSelection) && (() => {
-              const quotation = quotations.find(q => q._id === selectedSelection)!;
+            {quotations.find(q => (typeof q._id === 'object' ? q._id.$oid : q._id) === selectedSelection) && (() => {
+              const quotation = quotations.find(q => (typeof q._id === 'object' ? q._id.$oid : q._id) === selectedSelection)!;
               
               return (
                 <>
@@ -392,12 +411,47 @@ export const AdminCustomerSelections: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 p-3 border rounded-md bg-gray-50">
-                      <div className="flex justify-between">
-                        <span>Costo de encuadernación ({quotation.agrupamiento_volumenes.cantidad_volumenes} × ${quotation.agrupamiento_volumenes.costo_encuadernacion.total})</span>
-                        <span className="font-medium">
-                          ${quotation.agrupamiento_volumenes.costo_encuadernacion.total}
-                        </span>
+                  </div>
+
+                  {/* Sección de Encuadernación */}
+                  <div className="mb-6">
+                    <h4 className="font-medium text-gray-700 mb-2">
+                      Detalles de Encuadernación
+                    </h4>
+                    <div className="bg-purple-50 border border-purple-200 rounded-md p-4">
+                      {quotation.agrupamiento_volumenes.costo_encuadernacion.tipo_encuadernacion ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-600 mb-1">Material</h5>
+                            <p className="text-lg text-purple-800 font-medium">
+                              {quotation.agrupamiento_volumenes.costo_encuadernacion.tipo_encuadernacion.material}
+                            </p>
+                          </div>
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-600 mb-1">Tamaño</h5>
+                            <p className="text-lg text-purple-800 font-medium">
+                              {quotation.agrupamiento_volumenes.costo_encuadernacion.tipo_encuadernacion.tamano}
+                            </p>
+                          </div>
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-600 mb-1">Precio por Volumen</h5>
+                            <p className="text-lg text-purple-800 font-medium">
+                              ${quotation.agrupamiento_volumenes.costo_encuadernacion.tipo_encuadernacion.precio}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-gray-600 italic">No se especificó tipo de encuadernación</p>
+                      )}
+                      <div className="mt-4 pt-3 border-t border-purple-300">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-700">
+                            Costo total de encuadernación ({quotation.agrupamiento_volumenes.cantidad_volumenes} volúmenes)
+                          </span>
+                          <span className="text-xl font-bold text-purple-800">
+                            ${quotation.agrupamiento_volumenes.costo_encuadernacion.total}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -442,6 +496,17 @@ export const AdminCustomerSelections: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Botón de Entregado */}
+                  <div className="mt-6 flex justify-end">
+                    <button
+                      onClick={() => handleMarkAsDelivered(typeof quotation._id === 'object' ? quotation._id.$oid : quotation._id || '')}
+                      className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center"
+                    >
+                      <CheckCircleIcon className="mr-2" size={18} />
+                      Marcar como Entregado
+                    </button>
                   </div>
                 </>
               );

@@ -2,7 +2,11 @@ from fastapi import APIRouter, HTTPException, status
 from pymongo.collection import Collection
 from bson import ObjectId
 from typing import List
+from pydantic import BaseModel
 from schemas.cotizacionesLegales_schemas import CotizacionLegalSchema, LeySchema
+
+class EstadoUpdate(BaseModel):
+    estado: str
 
 def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection) -> APIRouter:
     router = APIRouter()
@@ -72,6 +76,41 @@ def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection
         if updated_doc and "_id" in updated_doc:
             updated_doc["_id"] = str(updated_doc["_id"])
         return CotizacionLegalSchema(**updated_doc)
+
+    @router.patch("/cotizaciones/{id}/estado", response_model=CotizacionLegalSchema)
+    async def update_cotizacion_estado(id: str, estado_data: EstadoUpdate):
+        try:
+            if not ObjectId.is_valid(id):
+                raise HTTPException(status_code=400, detail="ID inválido")
+            
+            # Verificar que el estado sea válido
+            if estado_data.estado not in ["pendiente", "entregado"]:
+                raise HTTPException(status_code=400, detail="Estado inválido. Debe ser 'pendiente' o 'entregado'")
+            
+            # Buscar la cotización existente
+            existing_cotizacion = collection_cotizaciones.find_one({"_id": ObjectId(id)})
+            if not existing_cotizacion:
+                raise HTTPException(status_code=404, detail="Cotización no encontrada")
+            
+            # Actualizar solo el estado
+            result = collection_cotizaciones.update_one(
+                {"_id": ObjectId(id)}, 
+                {"$set": {"estado": estado_data.estado}}
+            )
+            
+            if result.modified_count == 0:
+                raise HTTPException(status_code=400, detail="No se pudo actualizar el estado")
+            
+            # Devolver la cotización actualizada
+            updated_doc = collection_cotizaciones.find_one({"_id": ObjectId(id)})
+            if updated_doc and "_id" in updated_doc:
+                updated_doc["_id"] = str(updated_doc["_id"])
+            return CotizacionLegalSchema(**updated_doc)
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al actualizar estado: {str(e)}")
 
     @router.post("/cotizaciones", response_model=CotizacionLegalSchema, status_code=status.HTTP_201_CREATED)
     async def create_cotizacion(cotizacion: CotizacionLegalSchema):

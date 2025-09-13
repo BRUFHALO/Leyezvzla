@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Law, thickLawIds } from '../data/lawsData';
-import { BookOpenIcon, BookmarkIcon, CreditCardIcon, AlertTriangleIcon, MailIcon } from 'lucide-react';
+import { BookOpenIcon, BookmarkIcon, CreditCardIcon, AlertTriangleIcon, MailIcon, PackageIcon } from 'lucide-react';
 import { useAdmin } from '../context/AdminContext';
 import { Quotation, saveQuotationToBackend } from '../data/quotationsData';
+import { EncuadernacionType, calculateEncuadernacionCost, canFitInSingleVolume } from '../data/encuadernacionData';
 
 
 interface QuoteSummaryProps {
@@ -18,15 +19,23 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
 }) => {
   const {
     paymentOptions: availablePaymentOptions,
-    veryThickLawIds
+    veryThickLawIds,
+    encuadernaciones,
+    loadEncuadernaciones
   } = useAdmin();
 
   const [selectedPaymentOption, setSelectedPaymentOption] = useState<number | null>(null);
+  const [selectedEncuadernacion, setSelectedEncuadernacion] = useState<EncuadernacionType | null>(null);
   const [email, setEmail] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [showEmailForm, setShowEmailForm] = useState<boolean>(false);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+
+  // Cargar encuadernaciones al montar el componente
+  useEffect(() => {
+    loadEncuadernaciones();
+  }, []);
 
   // Función para formatear la fecha
   const formatDate = (date: Date) => {
@@ -72,7 +81,7 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
   };
 
   const volumes = determineVolumes();
-  const bindingCost = volumes.length * 10;
+  const bindingCost = selectedEncuadernacion ? calculateEncuadernacionCost(selectedEncuadernacion, volumes.length) : 0;
   const grandTotal = totalPrice + bindingCost;
 
  const paymentOptions = availablePaymentOptions
@@ -118,8 +127,13 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
       })),
       costo_encuadernacion: {
         cantidad: volumes.length,
-        costo_unitario: 10,
-        total: bindingCost
+        costo_unitario: selectedEncuadernacion?.precio || 0,
+        total: bindingCost,
+        tipo_encuadernacion: selectedEncuadernacion ? {
+          material: selectedEncuadernacion.material,
+          tamano: selectedEncuadernacion.tamano,
+          precio: selectedEncuadernacion.precio
+        } : undefined
       }
     },
     resumen_costo: {
@@ -141,6 +155,10 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
   const saveQuotation = async () => {
     if (!selectedPaymentOption) {
       alert('Por favor, seleccione una opción de pago');
+      return;
+    }
+    if (!selectedEncuadernacion) {
+      alert('Por favor, seleccione un tipo de encuadernación');
       return;
     }
     if (!email || !customerName) {
@@ -176,6 +194,10 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
   const handleSaveQuote = () => {
     if (!selectedPaymentOption) {
       alert('Por favor, seleccione una opción de pago antes de guardar la cotización');
+      return;
+    }
+    if (!selectedEncuadernacion) {
+      alert('Por favor, seleccione un tipo de encuadernación antes de guardar la cotización');
       return;
     }
     setShowEmailForm(true);
@@ -245,6 +267,67 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Sección de selección de encuadernación */}
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-700 mb-2 flex items-center">
+              <PackageIcon className="mr-2 text-blue-600" size={20} />
+              Tipo de Encuadernación
+            </h3>
+            {encuadernaciones.length === 0 ? (
+              <div className="text-center py-4 text-gray-500 border rounded-md">
+                Cargando opciones de encuadernación...
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {encuadernaciones.map(encuadernacion => (
+                  <div 
+                    key={encuadernacion._id} 
+                    className={`border rounded-md p-3 cursor-pointer transition-colors ${
+                      selectedEncuadernacion?._id === encuadernacion._id 
+                        ? 'bg-blue-100 border-blue-400' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => setSelectedEncuadernacion(encuadernacion)}
+                  >
+                    <div className="font-medium text-gray-800">
+                      {encuadernacion.material}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Tamaño: {encuadernacion.tamano}
+                    </div>
+                    <div className="text-lg font-semibold text-blue-700">
+                      ${encuadernacion.precio}
+                    </div>
+                    <div className="text-xs text-gray-500">por volumen</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {selectedEncuadernacion && (
+              <div className="mt-3 p-3 border rounded-md bg-blue-50">
+                <div className="flex justify-between">
+                  <span>
+                    Encuadernación seleccionada: {selectedEncuadernacion.material} ({selectedEncuadernacion.tamano})
+                  </span>
+                  <span className="font-medium">
+                    {volumes.length} × ${selectedEncuadernacion.precio} = ${bindingCost}
+                  </span>
+                </div>
+              </div>
+            )}
+            {!selectedEncuadernacion && (
+              <div className="mt-3 p-3 border border-amber-200 rounded-md bg-amber-50">
+                <div className="flex items-center text-amber-700">
+                  <AlertTriangleIcon className="mr-2 flex-shrink-0" size={16} />
+                  <span className="text-sm">
+                    Por favor, seleccione un tipo de encuadernación para continuar
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="mb-6">
             <h3 className="text-lg font-medium text-gray-700 mb-2">
               Costo Total
@@ -280,9 +363,9 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
 
           <div className="mt-6 flex justify-end">
             <button 
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center" 
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed" 
               onClick={handleSaveQuote} 
-              disabled={selectedLaws.length === 0}
+              disabled={selectedLaws.length === 0 || !selectedEncuadernacion}
             >
               <MailIcon className="mr-2" size={18} />
               Guardar Cotización

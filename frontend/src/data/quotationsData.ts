@@ -14,10 +14,17 @@ export interface Volume {
   leyes: string;
 }
 
+export interface TipoEncuadernacion {
+  material: string;
+  tamano: string;
+  precio: number;
+}
+
 export interface CostoEncuadernacion {
   cantidad: number;
   costo_unitario: number;
   total: number;
+  tipo_encuadernacion?: TipoEncuadernacion;
 }
 
 export interface AgrupamientoVolumenes {
@@ -90,9 +97,28 @@ export const getQuotationsFromBackend = async (): Promise<Quotation[]> => {
 // Función para eliminar una cotización
 export const deleteQuotationFromBackend = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${API_BASE_URL}/cotizaciones/${id}`);
-  } catch (error) {
-    console.error('Error al eliminar cotización:', error);
-    throw new Error('No se pudo eliminar la cotización del servidor');
+    const response = await axios.delete(`${API_BASE_URL}/cotizaciones/${id}`);
+    if (response.status !== 204) {
+      throw new Error(`Error ${response.status}: No se pudo eliminar la cotización`);
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(`Error ${error.response.status}: ${error.response.data?.detail || 'Error del servidor'}`);
+    }
+    throw new Error('Error de conexión al eliminar la cotización');
+  }
+};
+
+export const updateQuotationStatus = async (id: string, estado: string): Promise<Quotation> => {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}/cotizaciones/${id}/estado`, {
+      estado: estado
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(`Error ${error.response.status}: ${error.response.data?.detail || 'Error del servidor'}`);
+    }
+    throw new Error('Error de conexión al actualizar el estado');
   }
 };

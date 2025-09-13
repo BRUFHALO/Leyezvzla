@@ -13,9 +13,19 @@ import { adminCredentials } from '../data/adminData';
 import { 
   Quotation, 
   saveQuotationToBackend, 
-  getQuotationsFromBackend,
-  deleteQuotationFromBackend 
+  getQuotationsFromBackend, 
+  deleteQuotationFromBackend, 
+  updateQuotationStatus 
 } from '../data/quotationsData';
+import {
+  EncuadernacionType,
+  getEncuadernacionesFromBackend,
+  getAllEncuadernacionesFromBackend,
+  createEncuadernacionInBackend,
+  updateEncuadernacionInBackend,
+  deleteEncuadernacionFromBackend,
+  toggleEncuadernacionStatusInBackend
+} from '../data/encuadernacionData';
 
 interface AdminContextType {
   isAuthenticated: boolean;
@@ -41,7 +51,16 @@ interface AdminContextType {
   addQuotation: (quotation: Omit<Quotation, '_id'>) => Promise<Quotation>;
   loadQuotations: () => Promise<void>;
   removeQuotation: (id: string) => Promise<void>;
-  
+  updateQuotationStatus: (id: string, estado: string) => Promise<Quotation>;
+  // Propiedades para encuadernación
+  encuadernaciones: EncuadernacionType[];
+  allEncuadernaciones: EncuadernacionType[];
+  loadEncuadernaciones: () => Promise<void>;
+  loadAllEncuadernaciones: () => Promise<void>;
+  addEncuadernacion: (encuadernacion: Omit<EncuadernacionType, '_id' | 'fecha_creacion' | 'fecha_actualizacion'>) => Promise<EncuadernacionType>;
+  updateEncuadernacion: (id: string, encuadernacion: Partial<Omit<EncuadernacionType, '_id' | 'fecha_creacion' | 'fecha_actualizacion'>>) => Promise<EncuadernacionType>;
+  deleteEncuadernacion: (id: string) => Promise<void>;
+  toggleEncuadernacionStatus: (id: string) => Promise<EncuadernacionType>;
 }
 
 export interface CustomerSelection {
@@ -102,10 +121,14 @@ export const AdminProvider: React.FC<{
   const [customerSelections, setCustomerSelections] = useState<CustomerSelection[]>([createSampleCustomerSelection()]);
   // Mover el estado de quotations dentro del componente
   const [quotations, setQuotations] = useState<Quotation[]>([]);
+  // Estados para encuadernación
+  const [encuadernaciones, setEncuadernaciones] = useState<EncuadernacionType[]>([]);
+  const [allEncuadernaciones, setAllEncuadernaciones] = useState<EncuadernacionType[]>([]);
 
   useEffect(() => {
     refreshLaws();
     loadQuotations(); // Cargar quotations al inicializar
+    loadEncuadernaciones(); // Cargar encuadernaciones al inicializar
   }, []);
 
     // Persistir paymentOptions en localStorage cuando cambien
@@ -154,9 +177,77 @@ export const AdminProvider: React.FC<{
   const removeQuotation = async (id: string): Promise<void> => {
     try {
       await deleteQuotationFromBackend(id);
-      setQuotations(prev => prev.filter(q => q._id?.$oid !== id));
+      setQuotations(prev => prev.filter(q => {
+        const quotationId = typeof q._id === 'object' ? q._id.$oid : q._id;
+        return quotationId !== id;
+      }));
     } catch (error: any) {
       throw new Error(error.message || 'No se pudo eliminar la cotización');
+    }
+  };
+
+  // Funciones para encuadernación
+  const loadEncuadernaciones = async (): Promise<void> => {
+    try {
+      console.log('Cargando encuadernaciones...');
+      const encuadernacionesData = await getEncuadernacionesFromBackend();
+      console.log('Encuadernaciones cargadas:', encuadernacionesData);
+      setEncuadernaciones(encuadernacionesData);
+    } catch (error: any) {
+      console.error('Error al cargar encuadernaciones:', error);
+      setError('Error al cargar tipos de encuadernación: ' + error.message);
+    }
+  };
+
+  const loadAllEncuadernaciones = async (): Promise<void> => {
+    try {
+      const allEncuadernacionesData = await getAllEncuadernacionesFromBackend();
+      setAllEncuadernaciones(allEncuadernacionesData);
+    } catch (error: any) {
+      console.error('Error al cargar todas las encuadernaciones:', error);
+    }
+  };
+
+  const addEncuadernacion = async (encuadernacion: Omit<EncuadernacionType, '_id' | 'fecha_creacion' | 'fecha_actualizacion'>): Promise<EncuadernacionType> => {
+    try {
+      const newEncuadernacion = await createEncuadernacionInBackend(encuadernacion);
+      await loadEncuadernaciones();
+      await loadAllEncuadernaciones();
+      return newEncuadernacion;
+    } catch (error: any) {
+      throw new Error(error.message || 'No se pudo crear la encuadernación');
+    }
+  };
+
+  const updateEncuadernacion = async (id: string, encuadernacion: Partial<Omit<EncuadernacionType, '_id' | 'fecha_creacion' | 'fecha_actualizacion'>>): Promise<EncuadernacionType> => {
+    try {
+      const updatedEncuadernacion = await updateEncuadernacionInBackend(id, encuadernacion);
+      await loadEncuadernaciones();
+      await loadAllEncuadernaciones();
+      return updatedEncuadernacion;
+    } catch (error: any) {
+      throw new Error(error.message || 'No se pudo actualizar la encuadernación');
+    }
+  };
+
+  const deleteEncuadernacion = async (id: string): Promise<void> => {
+    try {
+      await deleteEncuadernacionFromBackend(id);
+      await loadEncuadernaciones();
+      await loadAllEncuadernaciones();
+    } catch (error: any) {
+      throw new Error(error.message || 'No se pudo eliminar la encuadernación');
+    }
+  };
+
+  const toggleEncuadernacionStatus = async (id: string): Promise<EncuadernacionType> => {
+    try {
+      const updatedEncuadernacion = await toggleEncuadernacionStatusInBackend(id);
+      await loadEncuadernaciones();
+      await loadAllEncuadernaciones();
+      return updatedEncuadernacion;
+    } catch (error: any) {
+      throw new Error(error.message || 'No se pudo cambiar el estado de la encuadernación');
     }
   };
 
@@ -310,7 +401,28 @@ useEffect(() => {
       quotations,
       addQuotation,
       loadQuotations,
-      removeQuotation
+      removeQuotation,
+      updateQuotationStatus: async (id: string, estado: string) => {
+        try {
+          const updatedQuotation = await updateQuotationStatus(id, estado);
+          setQuotations(prev => prev.map(q => 
+            (typeof q._id === 'object' ? q._id.$oid : q._id) === id 
+              ? updatedQuotation 
+              : q
+          ));
+          return updatedQuotation;
+        } catch (error: any) {
+          throw new Error(error.message || 'Error al actualizar estado de cotización');
+        }
+      },
+      encuadernaciones,
+      allEncuadernaciones,
+      loadEncuadernaciones,
+      loadAllEncuadernaciones,
+      addEncuadernacion,
+      updateEncuadernacion,
+      deleteEncuadernacion,
+      toggleEncuadernacionStatus
     }}>
       {children}
     </AdminContext.Provider>

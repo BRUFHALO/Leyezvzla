@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from routes.cotizacionesLegales import get_routes
+from routes.encuadernacion import get_encuadernacion_routes
 from fastapi.middleware.cors import CORSMiddleware
 
 # Cargar variables de entorno
@@ -12,6 +13,7 @@ MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
 MONGO_COLLECTION_LEYES = os.getenv("MONGO_COLLECTION_LEYES")
 MONGO_COLLECTION_COTIZACIONES = os.getenv("MONGO_COLLECTION_COTIZACIONES")
+MONGO_COLLECTION_ENCUADERNACION = os.getenv("MONGO_COLLECTION_ENCUADERNACION", "encuadernacion")
 
 # Inicializar FastAPI
 app = FastAPI()
@@ -21,9 +23,9 @@ client = MongoClient(MONGO_URI)
 db = client[MONGO_DB_NAME]
 collection_leyes = db[MONGO_COLLECTION_LEYES]
 collection_cotizaciones = db[MONGO_COLLECTION_COTIZACIONES]
+collection_encuadernacion = db[MONGO_COLLECTION_ENCUADERNACION]
 print(f"Conectado a la base de datos '{MONGO_DB_NAME}'")
 print(f"Colecciones disponibles: {db.list_collection_names()}")
-
 
 # CORS
 origins = [
@@ -43,6 +45,12 @@ app.include_router(
     get_routes(collection_leyes, collection_cotizaciones),
     prefix="",
     tags=["Leyes y Cotizaciones"]
+)
+
+app.include_router(
+    get_encuadernacion_routes(collection_encuadernacion),
+    prefix="",
+    tags=["Encuadernación"]
 )
 
 @app.get("/")

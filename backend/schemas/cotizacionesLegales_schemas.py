@@ -40,10 +40,16 @@ class VolumenSchema(BaseModel):
     numero: int
     leyes: str
 
+class TipoEncuadernacionSchema(BaseModel):
+    material: str
+    tamano: str
+    precio: float
+
 class CostoEncuadernacionSchema(BaseModel):
     cantidad: int
     costo_unitario: float
     total: float
+    tipo_encuadernacion: Optional[TipoEncuadernacionSchema] = None
 
 class AgrupamientoVolumenesSchema(BaseModel):
     cantidad_volumenes: int
