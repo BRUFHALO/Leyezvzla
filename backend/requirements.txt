@@ -4,3 +4,7 @@ pymongo
 pydantic
 python-dotenv
 email-validator
+resend
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart

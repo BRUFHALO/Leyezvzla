@@ -38,6 +38,12 @@ def get_collection_cotizaciones():
         raise HTTPException(status_code=500, detail="Base de datos no conectada")
     return db[MONGO_COLLECTION_COTIZACIONES]
 
+def get_database():
+    global db
+    if db is None:
+        connect_to_mongo()
+    return db
+
 def close_mongo_connection():
     global client
     if client:
