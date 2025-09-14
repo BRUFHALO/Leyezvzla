@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAdmin } from '../../context/AdminContext';
+import { useAuth } from '../../context/AuthContext';
+import { ProtectedRoute } from '../ProtectedRoute';
 import { AdminLawCatalog } from './AdminLawCatalog';
 import { AdminPaymentOptions } from './AdminPaymentOptions';
 import { AdminCustomerSelections } from './AdminCustomerSelections';
 import { AdminEncuadernacion } from './AdminEncuadernacion';
 import { AdminDeliveredQuotations } from './AdminDeliveredQuotations';
-import { BookIcon, CreditCardIcon, HomeIcon, LogOutIcon, UsersIcon, PackageIcon } from 'lucide-react';
+import { ProfileManagement } from './ProfileManagement';
+import { UserManagement } from './UserManagement';
+import { BookIcon, CreditCardIcon, HomeIcon, LogOutIcon, UsersIcon, PackageIcon, UserIcon, SettingsIcon } from 'lucide-react';
 export const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'laws' | 'payments' | 'customers' | 'encuadernacion' | 'delivered'>('laws');
-  const {
-    logout
-  } = useAdmin();
+  const [activeTab, setActiveTab] = useState<'laws' | 'payments' | 'customers' | 'encuadernacion' | 'delivered' | 'profile' | 'users'>('laws');
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const handleLogout = () => {
     logout();
     navigate('/');
   };
-  return <div className="min-h-screen bg-gray-100">
+  
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -57,21 +61,39 @@ export const AdminDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('encuadernacion')}
-              className={`flex items-center px-4 py-2 rounded-md transition-colors ${
-                activeTab === 'encuadernacion' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+              className={`px-4 py-2 font-medium text-sm flex items-center ${
+                activeTab === 'encuadernacion' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              <PackageIcon className="mr-2" size={20} />
+              <PackageIcon size={18} className="mr-1.5" />
               Encuadernación
             </button>
             <button
               onClick={() => setActiveTab('delivered')}
-              className={`flex items-center px-4 py-2 rounded-md transition-colors ${
-                activeTab === 'delivered' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+              className={`px-4 py-2 font-medium text-sm flex items-center ${
+                activeTab === 'delivered' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              <PackageIcon className="mr-2" size={20} />
+              <PackageIcon size={18} className="mr-1.5" />
               Entregadas
+            </button>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`px-4 py-2 font-medium text-sm flex items-center ${
+                activeTab === 'profile' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <UserIcon size={18} className="mr-1.5" />
+              Mi Perfil
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-4 py-2 font-medium text-sm flex items-center ${
+                activeTab === 'users' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <SettingsIcon size={18} className="mr-1.5" />
+              Gestión de Usuarios
             </button>
           </div>
         </div>
@@ -80,6 +102,10 @@ export const AdminDashboard: React.FC = () => {
         {activeTab === 'customers' && <AdminCustomerSelections />}
         {activeTab === 'encuadernacion' && <AdminEncuadernacion />}
         {activeTab === 'delivered' && <AdminDeliveredQuotations />}
+        {activeTab === 'profile' && <ProfileManagement />}
+        {activeTab === 'users' && <UserManagement />}
       </main>
-    </div>;
+    </div>
+    </ProtectedRoute>
+  );
 };

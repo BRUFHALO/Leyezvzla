@@ -1,8 +1,3 @@
-// Credenciales simplificadas para el admin
-export const adminCredentials = {
-  username: 'admin',
-  password: 'admin123'
-};
 // Tipos de grosor disponibles
 export const thicknessOptions = [{
   value: 'low',

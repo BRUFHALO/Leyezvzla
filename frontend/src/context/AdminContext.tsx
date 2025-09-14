@@ -9,7 +9,6 @@ import {
   deleteLawFromBackend,
   getLawsWithMongoIds 
 } from '../data/lawsData';
-import { adminCredentials } from '../data/adminData';
 import { 
   Quotation, 
   saveQuotationToBackend, 
@@ -28,9 +27,6 @@ import {
 } from '../data/encuadernacionData';
 
 interface AdminContextType {
-  isAuthenticated: boolean;
-  login: (username: string, password: string) => boolean;
-  logout: () => void;
   laws: Law[];
   updateLaw: (law: Law, mongoId: string) => Promise<void>;
   addLaw: (law: Omit<Law, 'id'>) => Promise<Law>;
@@ -104,7 +100,6 @@ const createSampleCustomerSelection = (): CustomerSelection => {
 export const AdminProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [laws, setLaws] = useState<Law[]>([]);
   const [lawsWithMongoIds, setLawsWithMongoIds] = useState<(Law & { mongoId: string })[]>([]);
   const [paymentOptions, setPaymentOptions] = useState<number[]>(() => {
@@ -268,17 +263,6 @@ export const AdminProvider: React.FC<{
     }
   };
 
-  const login = (username: string, password: string): boolean => {
-    if (username === adminCredentials.username && password === adminCredentials.password) {
-      setIsAuthenticated(true);
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setIsAuthenticated(false);
-  };
 
   
 
@@ -380,9 +364,6 @@ useEffect(() => {
 
   return (
     <AdminContext.Provider value={{
-      isAuthenticated,
-      login,
-      logout,
       laws,
       updateLaw,
       addLaw,
