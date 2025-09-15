@@ -134,7 +134,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
           <div className="text-center">
             <p className="text-xs text-gray-500">
-              Credenciales por defecto: admin1 / Admin123!@#
+              
             </p>
           </div>
         </form>

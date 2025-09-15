@@ -120,7 +120,7 @@ export const AdminLogin: React.FC = () => {
               disabled={isLoading}
               className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white py-2 px-4 rounded-md transition-colors font-medium"
             >
-              {isLoading ? 'Enviando...' : 'Enviar enlace de recuperación'}
+              {isLoading ? 'Enviando...' : 'Enviar contraseña de recuperación'}
             </button>
           </form>
         )}
