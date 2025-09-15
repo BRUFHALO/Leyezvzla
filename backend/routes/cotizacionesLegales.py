@@ -1,15 +1,133 @@
-from fastapi import APIRouter, HTTPException, status
-from pymongo.collection import Collection
-from bson import ObjectId
+import json
+import os
 from typing import List
+
+import httpx
+from bson import ObjectId
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel
+from pymongo.collection import Collection
+
 from schemas.cotizacionesLegales_schemas import CotizacionLegalSchema, LeySchema
 
 class EstadoUpdate(BaseModel):
     estado: str
 
+def serialize_datetime(obj):
+    """Función auxiliar para serializar objetos datetime a string ISO format"""
+    from datetime import datetime
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Tipo {type(obj)} no es serializable")
+
+async def send_n8n_notification(cotizacion_data: dict) -> bool:
+    """
+    Envía una notificación al webhook de n8n cuando se crea una nueva cotización.
+    
+    Args:
+        cotizacion_data: Diccionario con los datos de la cotización
+        
+    Returns:
+        bool: True si la notificación se envió correctamente, False en caso contrario
+    """
+    webhook_url = os.getenv("N8N_WEBHOOK_URL")
+    webhook_secret = os.getenv("N8N_WEBHOOK_SECRET", "")
+    
+    print(f"[WEBHOOK] Iniciando envío de notificación a webhook")
+    print(f"[WEBHOOK] URL: {webhook_url}")
+    
+    if not webhook_url:
+        print("[ERROR] N8N_WEBHOOK_URL no está configurado en las variables de entorno")
+        return False
+    
+    try:
+        # Serializar manualmente los datos para manejar correctamente los datetime
+        serialized_data = json.loads(json.dumps(cotizacion_data, default=serialize_datetime))
+        
+        # Preparar los datos para el webhook
+        payload = {
+            "data": serialized_data,
+            "secret": webhook_secret
+        }
+        
+        # Usar ensure_ascii=False para mantener caracteres especiales
+        payload_str = json.dumps(payload, indent=2, ensure_ascii=False, default=serialize_datetime)
+        print(f"[WEBHOOK] Datos a enviar: {payload_str}")
+        
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "LeyesVzla-API/1.0",
+            "Accept": "application/json"
+        }
+        
+        # Configurar timeout (10 segundos de conexión, 30 segundos de espera)
+        timeout = httpx.Timeout(10.0, connect=30.0)
+        
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            print(f"[WEBHOOK] Enviando solicitud a {webhook_url}...")
+            response = await client.post(
+                webhook_url,
+                data=payload_str,  # Usar data en lugar de json para enviar el string ya serializado
+                headers=headers
+            )
+            
+            print(f"[WEBHOOK] Respuesta recibida - Código: {response.status_code}")
+            print(f"[WEBHOOK] Contenido de la respuesta: {response.text}")
+            
+            # Verificar el código de estado HTTP
+            response.raise_for_status()
+            
+            # Verificar si la respuesta es JSON válido
+            try:
+                response_json = response.json()
+                print(f"[WEBHOOK] Respuesta JSON: {json.dumps(response_json, indent=2, ensure_ascii=False)}")
+            except Exception as json_err:
+                print(f"[WEBHOOK] La respuesta no es un JSON válido: {str(json_err)}")
+            
+            return True
+            
+    except httpx.HTTPStatusError as e:
+        error_msg = f"[ERROR] Error HTTP {e.response.status_code} al enviar notificación"
+        if e.response.text:
+            error_msg += f": {e.response.text}"
+        print(error_msg)
+        
+    except httpx.RequestError as e:
+        print(f"[ERROR] Error de conexión al enviar notificación: {str(e)}")
+        
+    except (TypeError, ValueError) as e:
+        print(f"[ERROR] Error de serialización: {str(e)}")
+        
+    except Exception as e:
+        print(f"[ERROR] Error inesperado al enviar notificación: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+    
+    return False
+
 def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection) -> APIRouter:
     router = APIRouter()
+
+    @router.post("/test-webhook", status_code=status.HTTP_200_OK)
+    async def test_webhook():
+        """Endpoint de prueba para verificar el funcionamiento del webhook"""
+        test_data = {
+            "test": "Esta es una prueba del webhook",
+            "fecha": "2025-09-15T11:30:00-04:00",
+            "status": "success"
+        }
+        
+        try:
+            result = await send_n8n_notification({"test_data": test_data})
+            if result:
+                return {"status": "success", "message": "Notificación enviada correctamente"}
+            else:
+                return {"status": "error", "message": "Error al enviar la notificación"}
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al probar el webhook: {str(e)}"
+            )
 
     # --- Cotizaciones ---
 
@@ -113,17 +231,51 @@ def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection
             raise HTTPException(status_code=500, detail=f"Error al actualizar estado: {str(e)}")
 
     @router.post("/cotizaciones", response_model=CotizacionLegalSchema, status_code=status.HTTP_201_CREATED)
-    async def create_cotizacion(cotizacion: CotizacionLegalSchema):
+    async def create_cotizacion(cotizacion: CotizacionLegalSchema, background_tasks: BackgroundTasks):
         try:
+            print("\n[DEBUG] Iniciando creación de cotización")
+            print(f"[DEBUG] Webhook URL: {os.getenv('N8N_WEBHOOK_URL')}")
+            
+            # Convertir el modelo Pydantic a diccionario
             cotizacion_dict = cotizacion.model_dump(by_alias=True, exclude_none=True)
+            print(f"[DEBUG] Datos recibidos: {json.dumps(cotizacion_dict, indent=2, default=str)}")
+            
+            # Insertar la cotización en la base de datos
             result = collection_cotizaciones.insert_one(cotizacion_dict)
             created_cotizacion = collection_cotizaciones.find_one({"_id": result.inserted_id})
+            
             if created_cotizacion:
+                # Convertir ObjectId a string para el JSON
+                created_cotizacion["_id"] = str(created_cotizacion["_id"])
+                
+                # Crear copia del diccionario para evitar modificar el original
+                notification_data = created_cotizacion.copy()
+                
+                # Asegurarse de que los ObjectId se conviertan a string
+                if "_id" in notification_data and isinstance(notification_data["_id"], ObjectId):
+                    notification_data["_id"] = str(notification_data["_id"])
+                
+                print(f"\n[DEBUG] Datos para notificación:\n{json.dumps(notification_data, indent=2, default=str)}")
+                
+                # Enviar notificación en segundo plano
+                print("[DEBUG] Agregando tarea en segundo plano...")
+                background_tasks.add_task(
+                    send_n8n_notification,
+                    notification_data
+                )
+                
+                print("[DEBUG] Tarea de notificación agregada al fondo")
+                
                 return CotizacionLegalSchema(**created_cotizacion)
             else:
+                print("[ERROR] No se pudo crear la cotización en la base de datos")
                 raise HTTPException(status_code=500, detail="Error al crear la cotización")
+                
         except Exception as e:
+            print(f"[ERROR] Error en create_cotizacion: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error al crear cotización: {str(e)}")
+        finally:
+            print("[DEBUG] Finalizando creación de cotización\n")
 
     # --- Leyes ---
     @router.get("/leyes", response_model=List[LeySchema])
