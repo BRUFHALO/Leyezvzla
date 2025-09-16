@@ -17,6 +17,8 @@ export const AdminLawCatalog: React.FC = () => {
     loading,
     error
   } = useAdmin();
+  
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [editingLaw, setEditingLaw] = useState<{ law: Law; mongoId: string } | null>(null);
   const [newLaw, setNewLaw] = useState<Omit<Law, 'id'>>({
@@ -199,6 +201,31 @@ export const AdminLawCatalog: React.FC = () => {
         </div>
       </div>
 
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="w-full sm:w-96">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+              Buscar ley por nombre
+            </label>
+            <div className="relative">
+              <input
+                id="search"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Escriba para buscar..."
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {showAddForm && (
         <div className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-md">
           <h3 className="text-lg font-medium text-blue-800 mb-3">Nueva Ley</h3>
@@ -295,7 +322,20 @@ export const AdminLawCatalog: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {laws.map(law => {
+            {laws
+              .filter(law => {
+                if (searchTerm === '') return true;
+                
+                // Normalizar el texto de búsqueda y el nombre de la ley
+                const normalizeText = (text: string) => 
+                  text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                
+                const searchTermNormalized = normalizeText(searchTerm);
+                const lawNameNormalized = normalizeText(law.name);
+                
+                return lawNameNormalized.includes(searchTermNormalized);
+              })
+              .map(law => {
               const isEditing = editingLaw?.law.id === law.id;
               return (
                 <tr key={law.id} className={isEditing ? 'bg-blue-50' : ''}>

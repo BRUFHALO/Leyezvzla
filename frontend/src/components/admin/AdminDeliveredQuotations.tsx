@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../context/AdminContext';
-import { MailIcon, CalendarIcon, SearchIcon, ChevronDownIcon, ChevronUpIcon, EyeIcon, XIcon, RefreshCwIcon, PackageIcon, TrashIcon } from 'lucide-react';
+import { MailIcon, CalendarIcon, SearchIcon, ChevronDownIcon, ChevronUpIcon, EyeIcon, XIcon, RefreshCwIcon, PackageIcon, TrashIcon, ListIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { thicknessOptions } from '../../data/adminData';
@@ -19,6 +19,10 @@ export const AdminDeliveredQuotations: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedSelection, setSelectedSelection] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(true);
+  // Estados para la paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const itemsPerPageOptions = [5, 10, 20, 50, 100];
 
   // Cargar cotizaciones al montar el componente
   useEffect(() => {
@@ -35,7 +39,13 @@ export const AdminDeliveredQuotations: React.FC = () => {
     initializeQuotations();
   }, []);
 
-  // Filtrar cotizaciones entregadas y ordenar
+  // Calcular la paginación
+  const totalItems = quotations.filter(quotation => quotation.estado === 'entregado').length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+
+  // Filtrar cotizaciones entregadas, ordenar y paginar
   const filteredSelections = quotations
     .filter(quotation => quotation.estado === 'entregado')
     .filter(quotation => 
@@ -189,7 +199,9 @@ export const AdminDeliveredQuotations: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredSelections.map((quotation) => (
+            {filteredSelections
+              .slice(startIndex, endIndex)
+              .map((quotation) => (
               <tr key={typeof quotation._id === 'object' ? quotation._id.$oid : quotation._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -244,6 +256,109 @@ export const AdminDeliveredQuotations: React.FC = () => {
             ))}
           </tbody>
         </table>
+
+        {filteredSelections.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No se encontraron cotizaciones entregadas.
+          </div>
+        ) : (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Siguiente
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Mostrando <span className="font-medium">{Math.min(startIndex + 1, totalItems)}</span> a{' '}
+                  <span className="font-medium">{Math.min(endIndex, totalItems)}</span> de{' '}
+                  <span className="font-medium">{totalItems}</span> resultados
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <ListIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1); // Resetear a la primera página al cambiar items por página
+                    }}
+                    className="appearance-none bg-white pl-10 pr-12 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
+                  >
+                    {itemsPerPageOptions.map(option => (
+                      <option key={option} value={option} className="text-gray-700">
+                        Mostrar {option} por página
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Anterior</span>
+                    <ChevronUpIcon className="h-5 w-5 transform -rotate-90" aria-hidden="true" />
+                  </button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // Mostrar siempre 5 páginas si es posible
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          currentPage === pageNum
+                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Siguiente</span>
+                    <ChevronDownIcon className="h-5 w-5 transform rotate-90" aria-hidden="true" />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
 
         {filteredSelections.length === 0 && (
           <div className="text-center py-8 text-gray-500">

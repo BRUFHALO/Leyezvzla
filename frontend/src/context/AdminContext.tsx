@@ -110,7 +110,16 @@ export const AdminProvider: React.FC<{
       return [1, 2, 3, 4];
     }
   });
-  const [veryThickLawIds, setVeryThickLawIds] = useState<number[]>(thickLawIds);
+  // Cargar veryThickLawIds desde localStorage al inicializar
+  const [veryThickLawIds, setVeryThickLawIds] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('veryThickLawIds');
+      return saved ? JSON.parse(saved) : [...thickLawIds];
+    } catch (error) {
+      console.error('Error al cargar veryThickLawIds:', error);
+      return [...thickLawIds];
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [customerSelections, setCustomerSelections] = useState<CustomerSelection[]>([createSampleCustomerSelection()]);
@@ -131,23 +140,14 @@ export const AdminProvider: React.FC<{
     localStorage.setItem('paymentOptions', JSON.stringify(paymentOptions));
   }, [paymentOptions]);
 
-   // Persistir veryThickLawIds en localStorage cuando cambien
+  // Persistir veryThickLawIds en localStorage cuando cambien
   useEffect(() => {
-    localStorage.setItem('veryThickLawIds', JSON.stringify(veryThickLawIds));
-  }, [veryThickLawIds]);
-   useEffect(() => {
     try {
-      const saved = localStorage.getItem('veryThickLawIds');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setVeryThickLawIds(parsed);
-        }
-      }
+      localStorage.setItem('veryThickLawIds', JSON.stringify(veryThickLawIds));
     } catch (error) {
-      console.error('Error al cargar veryThickLawIds:', error);
+      console.error('Error al guardar veryThickLawIds:', error);
     }
-  }, []);
+  }, [veryThickLawIds]);
 
   // Mover las funciones de quotations dentro del componente
   const addQuotation = async (quotation: Omit<Quotation, '_id'>): Promise<Quotation> => {
@@ -342,7 +342,13 @@ useEffect(() => {
 }, []);
 
   const updateVeryThickLawIds = (ids: number[]) => {
-    setVeryThickLawIds(ids);
+    try {
+      // Asegurarse de que los IDs sean únicos
+      const uniqueIds = [...new Set(ids)];
+      setVeryThickLawIds(uniqueIds);
+    } catch (error) {
+      console.error('Error al actualizar veryThickLawIds:', error);
+    }
   };
 
   const addCustomerSelection = (selection: Omit<CustomerSelection, 'id' | 'timestamp'>) => {
