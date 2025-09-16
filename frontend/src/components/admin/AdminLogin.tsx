@@ -72,7 +72,7 @@ export const AdminLogin: React.FC = () => {
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <UserIcon size={18} className="text-gray-400" />
               </div>
-              <input id="username" type="text" value={username} onChange={e => setUsername(e.target.value)} className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="admin" required />
+              <input id="username" type="text" value={username} onChange={e => setUsername(e.target.value)} className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="tu usuario" required />
             </div>
           </div>
           <div className="mb-6">
@@ -110,7 +110,7 @@ export const AdminLogin: React.FC = () => {
                   value={resetEmail} 
                   onChange={e => setResetEmail(e.target.value)} 
                   className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                  placeholder="admin1@leyesvzla.com" 
+                  placeholder="tucorreo@gmail.com" 
                   required 
                 />
               </div>

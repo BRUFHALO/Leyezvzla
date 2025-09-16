@@ -80,8 +80,17 @@ export const UserManagement: React.FC = () => {
     }
 
     try {
-      await axios.post(`${API_BASE_URL}/auth/register`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      };
+
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, userData, {
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       setSuccessMessage('Usuario creado exitosamente');
@@ -90,6 +99,19 @@ export const UserManagement: React.FC = () => {
       loadUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
+      if (error.response) {
+        // El servidor respondió con un estado de error
+        console.error('Error response:', error.response.data);
+        alert(`Error: ${error.response.data.detail || 'Error al crear el usuario'}`);
+      } else if (error.request) {
+        // La solicitud se hizo pero no se recibió respuesta
+        console.error('No response received:', error.request);
+        alert('No se pudo conectar al servidor. Por favor, intente de nuevo.');
+      } else {
+        // Algo pasó en la configuración de la solicitud
+        console.error('Request error:', error.message);
+        alert(`Error: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
     }
