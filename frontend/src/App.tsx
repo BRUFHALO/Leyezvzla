@@ -1,5 +1,6 @@
 // App.tsx
-import React, { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { LawCatalog } from './components/LawCatalog';
 import { QuoteSummary } from './components/QuoteSummary';
 import { lawsCatalog, loadLawsFromBackend, staticLawsCatalog } from './data/lawsData';
@@ -62,7 +63,34 @@ export function App() {
   
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            padding: '16px',
+            borderRadius: '8px',
+          },
+          success: {
+            style: {
+              background: '#10B981',
+            },
+          },
+          error: {
+            style: {
+              background: '#EF4444',
+            },
+          },
+          loading: {
+            style: {
+              background: '#3B82F6',
+            },
+          },
+        }}
+      />
       <header className="bg-blue-800 text-white shadow-md">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

@@ -47,7 +47,7 @@ interface AdminContextType {
   addQuotation: (quotation: Omit<Quotation, '_id'>) => Promise<Quotation>;
   loadQuotations: () => Promise<void>;
   removeQuotation: (id: string) => Promise<void>;
-  updateQuotationStatus: (id: string, estado: string) => Promise<Quotation>;
+  updateQuotationStatus: (id: string, estado: string, fechaEntrega?: string) => Promise<Quotation>;
   // Propiedades para encuadernación
   encuadernaciones: EncuadernacionType[];
   allEncuadernaciones: EncuadernacionType[];
@@ -383,9 +383,9 @@ useEffect(() => {
       addQuotation,
       loadQuotations,
       removeQuotation,
-      updateQuotationStatus: async (id: string, estado: string) => {
+      updateQuotationStatus: async (id: string, estado: string, fechaEntrega?: string) => {
         try {
-          const updatedQuotation = await updateQuotationStatus(id, estado);
+          const updatedQuotation = await updateQuotationStatus(id, estado, fechaEntrega);
           setQuotations(prev => prev.map(q => 
             (typeof q._id === 'object' ? q._id.$oid : q._id) === id 
               ? updatedQuotation 

@@ -76,6 +76,7 @@ class CotizacionLegalSchema(BaseModel):
     opcion_pago: OpcionPagoSchema
     fecha_creacion: datetime
     estado: str
+    fecha_entrega: Optional[datetime] = None
 
     model_config = {
         "arbitrary_types_allowed": True,

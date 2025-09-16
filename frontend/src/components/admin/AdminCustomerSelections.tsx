@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../context/AdminContext';
 import { MailIcon, CalendarIcon, SearchIcon, ChevronDownIcon, ChevronUpIcon, TrashIcon, EyeIcon, XIcon, RefreshCwIcon, CheckCircleIcon } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { thicknessOptions } from '../../data/adminData';
-import { Quotation, getQuotationsFromBackend, deleteQuotationFromBackend } from '../../data/quotationsData';
+import { deleteQuotationFromBackend } from '../../data/quotationsData';
 
 export const AdminCustomerSelections: React.FC = () => {
   const {
@@ -74,32 +76,40 @@ export const AdminCustomerSelections: React.FC = () => {
     }
   };
 
+  // Función para eliminar una cotización
   const handleDelete = async (id: string) => {
-    if (window.confirm('¿Está seguro que desea eliminar esta cotización?')) {
+    if (window.confirm('¿Estás seguro de eliminar esta cotización?')) {
+      const loadingToast = toast.loading('Eliminando cotización...');
       try {
-        setLocalLoading(true);
-        await removeQuotation(id);
+        await deleteQuotationFromBackend(id);
+        removeQuotation(id);
         if (selectedSelection === id) {
           setSelectedSelection(null);
         }
-        // La tabla se actualiza automáticamente porque removeQuotation actualiza el estado
+        toast.success('Cotización eliminada correctamente', { id: loadingToast });
       } catch (error: any) {
-        alert('Error al eliminar: ' + error.message);
-      } finally {
-        setLocalLoading(false);
+        console.error('Error al eliminar cotización:', error);
+        toast.error(`Error al eliminar cotización: ${error.message || 'Error desconocido'}`, { id: loadingToast });
       }
     }
   };
 
+  // Función para marcar como entregado
   const handleMarkAsDelivered = async (id: string) => {
-    if (window.confirm('¿Está seguro que desea marcar esta cotización como entregada?')) {
+    if (window.confirm('¿Estás seguro de marcar esta cotización como entregada?')) {
+      const loadingToast = toast.loading('Actualizando estado...');
       try {
-        await updateQuotationStatus(id, 'entregado');
+        await updateQuotationStatus(id, 'entregado', new Date().toISOString());
+        await loadQuotations();
+        
         if (selectedSelection === id) {
           setSelectedSelection(null);
         }
+        
+        toast.success('¡Cotización marcada como entregada con éxito!', { id: loadingToast });
       } catch (error: any) {
-        alert('Error al marcar como entregado: ' + error.message);
+        console.error('Error al marcar como entregado:', error);
+        toast.error(`Error al marcar como entregado: ${error.message || 'Error desconocido'}`, { id: loadingToast });
       }
     }
   };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { Toaster } from 'react-hot-toast';
 import { ProtectedRoute } from '../ProtectedRoute';
 import { AdminLawCatalog } from './AdminLawCatalog';
 import { AdminPaymentOptions } from './AdminPaymentOptions';
@@ -22,6 +23,34 @@ export const AdminDashboard: React.FC = () => {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-100">
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+              padding: '16px',
+              borderRadius: '8px',
+              zIndex: 9999,
+            },
+            success: {
+              style: {
+                background: '#10B981',
+              },
+            },
+            error: {
+              style: {
+                background: '#EF4444',
+              },
+            },
+            loading: {
+              style: {
+                background: '#3B82F6',
+              },
+            },
+          }}
+        />
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">

@@ -15,7 +15,7 @@ export const AdminDeliveredQuotations: React.FC = () => {
   } = useAdmin();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'fecha_creacion' | 'customerEmail' | 'grandTotal'>('fecha_creacion');
+  const [sortField, setSortField] = useState<'fecha_entrega' | 'customerEmail' | 'grandTotal'>('fecha_entrega');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedSelection, setSelectedSelection] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(true);
@@ -46,10 +46,11 @@ export const AdminDeliveredQuotations: React.FC = () => {
       )
     )
      .sort((a, b) => {
-      const dateA = new Date(a.fecha_creacion);
-      const dateB = new Date(b.fecha_creacion);
+      // Usar fecha_entrega si está disponible, de lo contrario usar fecha_creacion
+      const dateA = new Date(a.fecha_entrega || a.fecha_creacion);
+      const dateB = new Date(b.fecha_entrega || b.fecha_creacion);
       
-      if (sortField === 'fecha_creacion') {
+      if (sortField === 'fecha_entrega') {
         return sortDirection === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
       } else if (sortField === 'customerEmail') {
         const emailA = a.cliente.email.toLowerCase();
@@ -61,7 +62,7 @@ export const AdminDeliveredQuotations: React.FC = () => {
       return 0;
     });
 
-  const handleSort = (field: 'fecha_creacion' | 'customerEmail' | 'grandTotal') => {
+  const handleSort = (field: 'fecha_entrega' | 'customerEmail' | 'grandTotal') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -98,7 +99,7 @@ export const AdminDeliveredQuotations: React.FC = () => {
     }
   };
 
-  const getSortIcon = (field: 'fecha_creacion' | 'customerEmail' | 'grandTotal') => {
+  const getSortIcon = (field: 'fecha_entrega' | 'customerEmail' | 'grandTotal') => {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />;
   };
@@ -154,11 +155,11 @@ export const AdminDeliveredQuotations: React.FC = () => {
             <tr>
               <th 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('fecha_creacion')}
+                onClick={() => handleSort('fecha_entrega')}
               >
                 <div className="flex items-center">
                   Fecha de Entrega
-                  {getSortIcon('fecha_creacion')}
+                  {getSortIcon('fecha_entrega')}
                 </div>
               </th>
               <th 
@@ -194,7 +195,9 @@ export const AdminDeliveredQuotations: React.FC = () => {
                   <div className="flex items-center">
                     <CalendarIcon className="mr-2 text-gray-400" size={16} />
                     <div className="text-sm text-gray-900">
-                      {format(new Date(quotation.fecha_creacion), 'dd/MM/yyyy', { locale: es })}
+                      {quotation.fecha_entrega 
+                        ? format(new Date(quotation.fecha_entrega), 'dd/MM/yyyy HH:mm', { locale: es })
+                        : format(new Date(quotation.fecha_creacion), 'dd/MM/yyyy', { locale: es })}
                     </div>
                   </div>
                 </td>
@@ -387,7 +390,9 @@ export const AdminDeliveredQuotations: React.FC = () => {
                       <div>
                         <span className="text-sm text-gray-500">Entregado el:</span>
                         <p className="font-medium text-green-700">
-                          {format(new Date(quotation.fecha_creacion), 'dd/MM/yyyy HH:mm', { locale: es })}
+                          {quotation.fecha_entrega 
+                            ? format(new Date(quotation.fecha_entrega), 'dd/MM/yyyy HH:mm', { locale: es })
+                            : format(new Date(quotation.fecha_creacion), 'dd/MM/yyyy HH:mm', { locale: es })}
                         </p>
                       </div>
                     </div>

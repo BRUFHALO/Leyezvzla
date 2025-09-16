@@ -33,11 +33,7 @@ async def send_n8n_notification(cotizacion_data: dict) -> bool:
     webhook_url = os.getenv("N8N_WEBHOOK_URL")
     webhook_secret = os.getenv("N8N_WEBHOOK_SECRET", "")
     
-    print(f"[WEBHOOK] Iniciando envío de notificación a webhook")
-    print(f"[WEBHOOK] URL: {webhook_url}")
-    
     if not webhook_url:
-        print("[ERROR] N8N_WEBHOOK_URL no está configurado en las variables de entorno")
         return False
     
     try:
@@ -52,7 +48,6 @@ async def send_n8n_notification(cotizacion_data: dict) -> bool:
         
         # Usar ensure_ascii=False para mantener caracteres especiales
         payload_str = json.dumps(payload, indent=2, ensure_ascii=False, default=serialize_datetime)
-        print(f"[WEBHOOK] Datos a enviar: {payload_str}")
         
         headers = {
             "Content-Type": "application/json",
@@ -64,44 +59,22 @@ async def send_n8n_notification(cotizacion_data: dict) -> bool:
         timeout = httpx.Timeout(10.0, connect=30.0)
         
         async with httpx.AsyncClient(timeout=timeout) as client:
-            print(f"[WEBHOOK] Enviando solicitud a {webhook_url}...")
             response = await client.post(
                 webhook_url,
                 data=payload_str,  # Usar data en lugar de json para enviar el string ya serializado
                 headers=headers
             )
             
-            print(f"[WEBHOOK] Respuesta recibida - Código: {response.status_code}")
-            print(f"[WEBHOOK] Contenido de la respuesta: {response.text}")
-            
             # Verificar el código de estado HTTP
             response.raise_for_status()
             
             # Verificar si la respuesta es JSON válido
-            try:
-                response_json = response.json()
-                print(f"[WEBHOOK] Respuesta JSON: {json.dumps(response_json, indent=2, ensure_ascii=False)}")
-            except Exception as json_err:
-                print(f"[WEBHOOK] La respuesta no es un JSON válido: {str(json_err)}")
-            
+            response.json()
             return True
             
-    except httpx.HTTPStatusError as e:
-        error_msg = f"[ERROR] Error HTTP {e.response.status_code} al enviar notificación"
-        if e.response.text:
-            error_msg += f": {e.response.text}"
-        print(error_msg)
-        
-    except httpx.RequestError as e:
-        print(f"[ERROR] Error de conexión al enviar notificación: {str(e)}")
-        
-    except (TypeError, ValueError) as e:
-        print(f"[ERROR] Error de serialización: {str(e)}")
-        
-    except Exception as e:
-        print(f"[ERROR] Error inesperado al enviar notificación: {str(e)}")
-        import traceback
-        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+    except (httpx.HTTPStatusError, httpx.RequestError, TypeError, ValueError, Exception):
+        # Error silenciado intencionalmente
+        pass
     
     return False
 
@@ -196,13 +169,15 @@ def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection
         return CotizacionLegalSchema(**updated_doc)
 
     @router.patch("/cotizaciones/{id}/estado", response_model=CotizacionLegalSchema)
-    async def update_cotizacion_estado(id: str, estado_data: EstadoUpdate):
+    async def update_cotizacion_estado(id: str, estado_data: dict):
         try:
             if not ObjectId.is_valid(id):
                 raise HTTPException(status_code=400, detail="ID inválido")
             
+            estado = estado_data.get("estado")
+            
             # Verificar que el estado sea válido
-            if estado_data.estado not in ["pendiente", "entregado"]:
+            if estado not in ["pendiente", "entregado"]:
                 raise HTTPException(status_code=400, detail="Estado inválido. Debe ser 'pendiente' o 'entregado'")
             
             # Buscar la cotización existente
@@ -210,10 +185,18 @@ def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection
             if not existing_cotizacion:
                 raise HTTPException(status_code=404, detail="Cotización no encontrada")
             
-            # Actualizar solo el estado
+            # Preparar los datos a actualizar
+            update_data = {"estado": estado}
+            
+            # Si el estado es 'entregado', actualizar la fecha de entrega
+            if estado == "entregado":
+                from datetime import datetime
+                update_data["fecha_entrega"] = datetime.now()
+            
+            # Actualizar el documento
             result = collection_cotizaciones.update_one(
                 {"_id": ObjectId(id)}, 
-                {"$set": {"estado": estado_data.estado}}
+                {"$set": update_data}
             )
             
             if result.modified_count == 0:
@@ -233,12 +216,8 @@ def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection
     @router.post("/cotizaciones", response_model=CotizacionLegalSchema, status_code=status.HTTP_201_CREATED)
     async def create_cotizacion(cotizacion: CotizacionLegalSchema, background_tasks: BackgroundTasks):
         try:
-            print("\n[DEBUG] Iniciando creación de cotización")
-            print(f"[DEBUG] Webhook URL: {os.getenv('N8N_WEBHOOK_URL')}")
-            
             # Convertir el modelo Pydantic a diccionario
             cotizacion_dict = cotizacion.model_dump(by_alias=True, exclude_none=True)
-            print(f"[DEBUG] Datos recibidos: {json.dumps(cotizacion_dict, indent=2, default=str)}")
             
             # Insertar la cotización en la base de datos
             result = collection_cotizaciones.insert_one(cotizacion_dict)
@@ -255,27 +234,18 @@ def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection
                 if "_id" in notification_data and isinstance(notification_data["_id"], ObjectId):
                     notification_data["_id"] = str(notification_data["_id"])
                 
-                print(f"\n[DEBUG] Datos para notificación:\n{json.dumps(notification_data, indent=2, default=str)}")
-                
                 # Enviar notificación en segundo plano
-                print("[DEBUG] Agregando tarea en segundo plano...")
                 background_tasks.add_task(
                     send_n8n_notification,
                     notification_data
                 )
                 
-                print("[DEBUG] Tarea de notificación agregada al fondo")
-                
                 return CotizacionLegalSchema(**created_cotizacion)
             else:
-                print("[ERROR] No se pudo crear la cotización en la base de datos")
                 raise HTTPException(status_code=500, detail="Error al crear la cotización")
                 
         except Exception as e:
-            print(f"[ERROR] Error en create_cotizacion: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error al crear cotización: {str(e)}")
-        finally:
-            print("[DEBUG] Finalizando creación de cotización\n")
 
     # --- Leyes ---
     @router.get("/leyes", response_model=List[LeySchema])

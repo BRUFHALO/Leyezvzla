@@ -71,6 +71,7 @@ export interface Quotation {
   opcion_pago: OpcionPago;
   fecha_creacion: string;  // Cambiado de objeto a string
   estado: string;
+  fecha_entrega?: string; // Fecha de entrega cuando el estado es 'entregado'
 }
 // Función para guardar una cotización en el backend
 export const saveQuotationToBackend = async (quotation: Omit<Quotation, '_id'>): Promise<Quotation> => {
@@ -109,11 +110,16 @@ export const deleteQuotationFromBackend = async (id: string): Promise<void> => {
   }
 };
 
-export const updateQuotationStatus = async (id: string, estado: string): Promise<Quotation> => {
+export const updateQuotationStatus = async (id: string, estado: string, fechaEntrega?: string): Promise<Quotation> => {
   try {
-    const response = await axios.patch(`${API_BASE_URL}/cotizaciones/${id}/estado`, {
-      estado: estado
-    });
+    const data: { estado: string; fecha_entrega?: string } = { estado };
+    
+    // Si el estado es 'entregado' y no se proporcionó una fecha, usar la fecha actual
+    if (estado === 'entregado') {
+      data.fecha_entrega = fechaEntrega || new Date().toISOString();
+    }
+    
+    const response = await axios.patch(`${API_BASE_URL}/cotizaciones/${id}/estado`, data);
     return response.data;
   } catch (error: any) {
     if (error.response) {
