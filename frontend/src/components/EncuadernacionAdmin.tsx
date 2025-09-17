@@ -17,6 +17,7 @@ export const EncuadernacionAdmin: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   // Estados para el formulario
   const [formData, setFormData] = useState({
@@ -73,12 +74,18 @@ export const EncuadernacionAdmin: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('¿Está seguro de que desea eliminar esta encuadernación?')) {
+    if (window.confirm('¿Está seguro de que desea eliminar permanentemente esta encuadernación? Esta acción no se puede deshacer.')) {
       setLoading(true);
       try {
         await deleteEncuadernacion(id);
+        // Mostrar mensaje de éxito
+        setSuccessMessage('Encuadernación eliminada correctamente');
+        // Recargar la lista después de eliminar
+        await loadAllEncuadernaciones();
+        // Limpiar el mensaje después de 3 segundos
+        setTimeout(() => setSuccessMessage(''), 3000);
       } catch (err: any) {
-        setError(err.message || 'Error al eliminar la encuadernación');
+        setError(err.response?.data?.detail || err.message || 'Error al eliminar la encuadernación');
       } finally {
         setLoading(false);
       }
@@ -115,6 +122,12 @@ export const EncuadernacionAdmin: React.FC = () => {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          {successMessage}
         </div>
       )}
 

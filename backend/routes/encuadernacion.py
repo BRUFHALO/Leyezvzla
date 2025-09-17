@@ -147,18 +147,20 @@ def get_encuadernacion_routes(collection_encuadernacion: Collection) -> APIRoute
 
     @router.delete("/encuadernacion/{id}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_encuadernacion(id: str):
-        """Eliminar encuadernación (soft delete - marcar como inactivo)"""
+        """Eliminar encuadernación de la base de datos"""
         try:
             if not ObjectId.is_valid(id):
                 raise HTTPException(status_code=400, detail="ID inválido")
             
-            result = collection_encuadernacion.update_one(
-                {"_id": ObjectId(id)},
-                {"$set": {"activo": False, "fecha_actualizacion": datetime.now()}}
-            )
-            
-            if result.matched_count == 0:
+            # Verificar que la encuadernación existe
+            if not collection_encuadernacion.find_one({"_id": ObjectId(id)}):
                 raise HTTPException(status_code=404, detail="Encuadernación no encontrada")
+            
+            # Eliminar el documento
+            result = collection_encuadernacion.delete_one({"_id": ObjectId(id)})
+            
+            if result.deleted_count == 0:
+                raise HTTPException(status_code=404, detail="No se pudo eliminar la encuadernación")
             
             return
         except HTTPException:

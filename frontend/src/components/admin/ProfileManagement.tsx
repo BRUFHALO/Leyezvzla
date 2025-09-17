@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { UserIcon, MailIcon, LockIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { UserIcon, MailIcon, LockIcon, EyeIcon, EyeOffIcon, CheckCircle2, XCircle } from 'lucide-react';
 
 export const ProfileManagement: React.FC = () => {
   const { user, changePassword, error, clearError } = useAuth();
@@ -12,16 +12,35 @@ export const ProfileManagement: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    minLength: false,
+    hasUpper: false,
+    hasLower: false,
+    hasNumber: false,
+    hasSpecial: false,
+    passwordsMatch: false
+  });
 
   const validatePassword = (password: string) => {
-    const minLength = password.length >= 8;
-    const hasUpper = /[A-Z]/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const requirements = {
+      minLength: password.length >= 8,
+      hasUpper: /[A-Z]/.test(password),
+      hasLower: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+      passwordsMatch: newPassword === confirmPassword
+    };
     
-    return minLength && hasUpper && hasLower && hasNumber && hasSpecial;
+    setPasswordRequirements(requirements);
+    return Object.values(requirements).every(Boolean);
   };
+
+  // Efecto para validar la contraseña en tiempo real
+  useEffect(() => {
+    if (newPassword || confirmPassword) {
+      validatePassword(newPassword);
+    }
+  }, [newPassword, confirmPassword]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,13 +49,13 @@ export const ProfileManagement: React.FC = () => {
     clearError();
 
     if (newPassword !== confirmPassword) {
+      setPasswordRequirements(prev => ({ ...prev, passwordsMatch: false }));
       alert('Las contraseñas no coinciden');
       setIsLoading(false);
       return;
     }
 
     if (!validatePassword(newPassword)) {
-      alert('La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y caracteres especiales');
       setIsLoading(false);
       return;
     }
@@ -210,22 +229,69 @@ export const ProfileManagement: React.FC = () => {
           </div>
 
           <div className="mt-4">
-            <p className="text-sm text-gray-600 mb-4">
-              La contraseña debe contener al menos:
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              La contraseña debe contener:
             </p>
-            <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-              <li>8 caracteres mínimo</li>
-              <li>Una letra mayúscula</li>
-              <li>Una letra minúscula</li>
-              <li>Un número</li>
-              <li>Un carácter especial (!@#$%^&*)</li>
+            <ul className="text-sm space-y-1.5">
+              <li className={`flex items-center ${passwordRequirements.minLength ? 'text-green-600' : 'text-gray-500'}`}>
+                {passwordRequirements.minLength ? (
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-2 text-red-400" />
+                )}
+                8 caracteres mínimo
+              </li>
+              <li className={`flex items-center ${passwordRequirements.hasUpper ? 'text-green-600' : 'text-gray-500'}`}>
+                {passwordRequirements.hasUpper ? (
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-2 text-red-400" />
+                )}
+                Al menos una letra mayúscula (A-Z)
+              </li>
+              <li className={`flex items-center ${passwordRequirements.hasLower ? 'text-green-600' : 'text-gray-500'}`}>
+                {passwordRequirements.hasLower ? (
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-2 text-red-400" />
+                )}
+                Al menos una letra minúscula (a-z)
+              </li>
+              <li className={`flex items-center ${passwordRequirements.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                {passwordRequirements.hasNumber ? (
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-2 text-red-400" />
+                )}
+                Al menos un número (0-9)
+              </li>
+              <li className={`flex items-center ${passwordRequirements.hasSpecial ? 'text-green-600' : 'text-gray-500'}`}>
+                {passwordRequirements.hasSpecial ? (
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-2 text-red-400" />
+                )}
+                Al menos un carácter especial (!@#$%^&*)
+              </li>
+              <li className={`flex items-center ${passwordRequirements.passwordsMatch && confirmPassword ? 'text-green-600' : 'text-gray-500'}`}>
+                {passwordRequirements.passwordsMatch && confirmPassword ? (
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-2 text-red-400" />
+                )}
+                Las contraseñas coinciden
+              </li>
             </ul>
           </div>
 
           <button
             type="submit"
-            disabled={isLoading}
-            className="mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 px-4 rounded-md transition-colors font-medium"
+            disabled={isLoading || !Object.values(passwordRequirements).every(Boolean) || !currentPassword}
+            className={`mt-6 text-white py-2 px-4 rounded-md transition-colors font-medium ${
+              isLoading || !Object.values(passwordRequirements).every(Boolean) || !currentPassword
+                ? 'bg-blue-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
             {isLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
           </button>

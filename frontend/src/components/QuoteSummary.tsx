@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Law, thickLawIds } from '../data/lawsData';
 import { BookOpenIcon, BookmarkIcon, CreditCardIcon, AlertTriangleIcon, MailIcon, PackageIcon } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useAdmin } from '../context/AdminContext';
 import { Quotation, saveQuotationToBackend } from '../data/quotationsData';
 import { EncuadernacionType, calculateEncuadernacionCost, canFitInSingleVolume } from '../data/encuadernacionData';
@@ -31,11 +32,111 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
   const [showEmailForm, setShowEmailForm] = useState<boolean>(false);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+  const [emailError, setEmailError] = useState<string>('');
+  const [touched, setTouched] = useState({
+    email: false,
+    name: false
+  });
 
   // Cargar encuadernaciones al montar el componente
   useEffect(() => {
     loadEncuadernaciones();
   }, []);
+
+  // Función para validar el correo electrónico
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+  };
+
+  // Manejar cambios en el correo electrónico con validación
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    
+    if (value === '') {
+      setEmailError('El correo electrónico es requerido');
+    } else if (!validateEmail(value)) {
+      setEmailError('Ingrese un correo electrónico válido');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const saveQuotation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validar campos antes de enviar
+    if (!customerName.trim()) {
+      setTouched({...touched, name: true});
+      return;
+    }
+    
+    if (!email) {
+      setEmailError('El correo electrónico es requerido');
+      setTouched({...touched, email: true});
+      return;
+    }
+    
+    if (!validateEmail(email)) {
+      setEmailError('Ingrese un correo electrónico válido');
+      setTouched({...touched, email: true});
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const quotationData = createQuotationData();
+      await saveQuotationToBackend(quotationData);
+      
+      // Mostrar toast de éxito
+      toast.success('Cotización creada con éxito. Nos contactaremos en la brevedad.', {
+        duration: 5000,
+        position: 'top-right',
+        style: {
+          background: '#10B981',
+          color: '#fff',
+          padding: '12px 16px',
+          borderRadius: '0.375rem',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        },
+        iconTheme: {
+          primary: '#fff',
+          secondary: '#10B981',
+        },
+      });
+      
+      // Cerrar el modal de ingreso de datos
+      setShowEmailForm(false);
+      
+      // Resetear el formulario y la selección del usuario
+      setCustomerName('');
+      setEmail('');
+      setSelectedPaymentOption(null);
+      setSelectedEncuadernacion(null);
+      setTouched({ email: false, name: false });
+      
+      // Limpiar la selección de leyes usando la función onResetSelection
+      if (onResetSelection) {
+        onResetSelection();
+      }
+      
+      // Mostrar confirmación en el componente
+      setShowConfirmation(true);
+      
+      // Ocultar mensaje de confirmación después de 6 segundos
+      setTimeout(() => setShowConfirmation(false), 6000);
+      
+    } catch (error) {
+      console.error('Error al guardar cotización:', error);
+      toast.error('Error al guardar la cotización. Por favor, intente nuevamente.', {
+        duration: 5000,
+        position: 'top-right'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Función para formatear la fecha
   const formatDate = (date: Date) => {
@@ -151,56 +252,20 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
   };
 };
 
-  // Función para guardar la cotización en la base de datos
-  const saveQuotation = async () => {
-    if (!selectedPaymentOption) {
-      alert('Por favor, seleccione una opción de pago');
-      return;
-    }
-    if (!selectedEncuadernacion) {
-      alert('Por favor, seleccione un tipo de encuadernación');
-      return;
-    }
-    if (!email || !customerName) {
-      alert('Por favor, complete todos los campos');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const quotationData = createQuotationData();
-      await saveQuotationToBackend(quotationData);
-      
-      // Mostrar mensaje de confirmación
-      setShowConfirmation(true);
-      setShowEmailForm(false);
-      
-      // Resetear formulario y selección
-      setEmail('');
-      setCustomerName('');
-      setSelectedPaymentOption(null);
-      onResetSelection(); // Llamamos a la función para resetear la selección
-      
-      // Ocultar mensaje de confirmación después de 3 segundos
-      setTimeout(() => setShowConfirmation(false), 6000);
-    } catch (error) {
-      console.error('Error al guardar cotización:', error);
-      alert('Error al guardar la cotización. Por favor, intente nuevamente.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  // Función para manejar el clic en el botón de guardar cotización
   const handleSaveQuote = () => {
     if (!selectedPaymentOption) {
-      alert('Por favor, seleccione una opción de pago antes de guardar la cotización');
+      toast.error('Por favor, seleccione una opción de pago');
       return;
     }
     if (!selectedEncuadernacion) {
-      alert('Por favor, seleccione un tipo de encuadernación antes de guardar la cotización');
+      toast.error('Por favor, seleccione un tipo de encuadernación');
       return;
     }
     setShowEmailForm(true);
+    // Resetear estados de validación
+    setEmailError('');
+    setTouched({ email: false, name: false });
   };
 
   return (
@@ -363,7 +428,7 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
 
           <div className="mt-6 flex justify-end">
             <button 
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSaveQuote} 
               disabled={selectedLaws.length === 0 || !selectedEncuadernacion}
             >
@@ -374,57 +439,92 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
 
           {/* Modal para ingresar datos del cliente */}
           {showEmailForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-                <h3 className="text-xl font-semibold mb-4">
-                  Guardar Cotización
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Complete sus datos para guardar la cotización.
-                </p>
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                {/* Encabezado */}
+                <div className="bg-blue-600 p-5">
+                  <div className="flex items-center">
+                    <MailIcon className="text-white mr-3" size={24} />
+                    <h3 className="text-xl font-semibold text-white">
+                      Guardar Cotización
+                    </h3>
+                  </div>
+                  <p className="text-blue-100 mt-1 text-sm">
+                    Complete sus datos para guardar la cotización
+                  </p>
+                </div>
                 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre completo *
-                  </label>
-                  <input 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md p-2" 
-                    placeholder="Su nombre completo" 
-                    value={customerName} 
-                    onChange={e => setCustomerName(e.target.value)} 
-                  />
-                </div>
+                {/* Cuerpo del formulario */}
+                <form onSubmit={saveQuotation} className="p-6">
+                  <div className="mb-5">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre completo <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        className={`w-full px-4 py-3 border ${touched.name && !customerName.trim() ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all`}
+                        placeholder="Su nombre completo" 
+                        value={customerName} 
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        onBlur={() => setTouched({...touched, name: true})}
+                      />
+                      {touched.name && !customerName.trim() && (
+                        <p className="mt-1 text-sm text-red-600">El nombre es requerido</p>
+                      )}
+                    </div>
+                  </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Correo electrónico *
-                  </label>
-                  <input 
-                    type="email" 
-                    className="w-full border border-gray-300 rounded-md p-2" 
-                    placeholder="correo@ejemplo.com" 
-                    value={email} 
-                    onChange={e => setEmail(e.target.value)} 
-                  />
-                </div>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Correo electrónico <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <input 
+                        type="email" 
+                        className={`w-full pl-10 pr-4 py-3 ${emailError ? 'border-red-500' : 'border-gray-300'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all`} 
+                        placeholder="correo@ejemplo.com" 
+                        value={email} 
+                        onChange={handleEmailChange}
+                        onBlur={() => setTouched({...touched, email: true})}
+                      />
+                      {emailError && (
+                        <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                      )}
+                    </div>
+                  </div>
 
-                <div className="flex justify-end space-x-3">
-                  <button 
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100" 
-                    onClick={() => setShowEmailForm(false)}
-                    disabled={saving}
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50" 
-                    onClick={saveQuotation}
-                    disabled={saving || !email || !customerName}
-                  >
-                    {saving ? 'Guardando...' : 'Guardar'}
-                  </button>
-                </div>
+                  <div className="flex justify-end space-x-3 pt-2">
+                    <button 
+                      type="button"
+                      className="px-5 py-2.5 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-50"
+                      onClick={() => setShowEmailForm(false)}
+                      disabled={saving}
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit"
+                      className={`px-5 py-2.5 rounded-lg font-medium text-white ${saving ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all`}
+                      disabled={saving || !email || !customerName.trim() || !!emailError}
+                    >
+                      {saving ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Guardando...
+                        </span>
+                      ) : 'Guardar Cotización'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
