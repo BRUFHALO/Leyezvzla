@@ -243,7 +243,7 @@ class AuthService:
             <html>
             <head>
                 <meta charset="utf-8">
-                <title>Recuperación de Contraseña - LeyesVzla</title>
+                <title>Recuperación de Contraseña - Law Design</title>
                 <style>
                     body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
                     .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
@@ -256,13 +256,13 @@ class AuthService:
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>LeyesVzla</h1>
+                        <h1>Law Design</h1>
                         <p>Recuperación de Contraseña</p>
                     </div>
                     
                     <div class="content">
                         <h2>Hola {username},</h2>
-                        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en LeyesVzla.</p>
+                        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en Law Design.</p>
                         
                         <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
                             <h3 style="color: #dc2626; margin: 0 0 10px 0;">Tu Contraseña Temporal:</h3>
@@ -291,7 +291,7 @@ class AuthService:
             
             return EmailService.send_custom_email(
                 to_email=email,
-                subject="Recuperación de Contraseña - LeyesVzla",
+                subject="Recuperación de Contraseña - LawDesign",
                 html_content=html_content
             )
             
@@ -358,7 +358,7 @@ class AuthService:
             
             return EmailService.send_custom_email(
                 to_email=email,
-                subject="Recuperación de Contraseña - LeyesVzla",
+                subject="Recuperación de Contraseña - LawDesign",
                 html_content=html_content
             )
             

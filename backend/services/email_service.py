@@ -13,12 +13,7 @@ api_key = os.getenv("RESEND_API_KEY")
 resend.api_key = api_key
 
 # Debug: Mostrar información de la API key al cargar
-if api_key:
-    print(f"📧 EmailService: API Key cargada: {api_key[:10]}...{api_key[-5:]}")
-    print(f"📧 EmailService: Archivo .env leído desde: {dotenv_path}")
-else:
-    print("❌ EmailService: API Key NO encontrada")
-    print(f"❌ EmailService: Archivo .env buscado en: {dotenv_path}")
+
 
 class EmailService:
     @staticmethod

@@ -27,8 +27,8 @@ collection_leyes = db[MONGO_COLLECTION_LEYES]
 collection_cotizaciones = db[MONGO_COLLECTION_COTIZACIONES]
 collection_encuadernacion = db[MONGO_COLLECTION_ENCUADERNACION]
 collection_users = db[MONGO_COLLECTION_USERS]
-print(f"Conectado a la base de datos '{MONGO_DB_NAME}'")
-print(f"Colecciones disponibles: {db.list_collection_names()}")
+#print(f"Conectado a la base de datos '{MONGO_DB_NAME}'")
+#print(f"Colecciones disponibles: {db.list_collection_names()}")
 
 # CORS
 origins = [
@@ -64,4 +64,4 @@ app.include_router(
 
 @app.get("/")
 def read_root():
-    return {"message": "API de LeyesVzla funcionando"}
+    return {"message": "API de LawDesign funcionando"}
