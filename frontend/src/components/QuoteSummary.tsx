@@ -153,31 +153,79 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
   const determineVolumes = () => {
     const volumes: Law[][] = [];
     let currentVolume: Law[] = [];
-    let hasThickLaw = false;
+    let currentVolumeThickness: 'low' | 'medium' | 'high' | 'very_high' | null = null;
 
-    selectedLaws.forEach(law => {
-      if (veryThickLawIds.includes(law.id)) {
-        if (currentVolume.length > 0 && !hasThickLaw) {
-          volumes.push([...currentVolume]);
-          currentVolume = [];
-        }
-        volumes.push([law]);
-        hasThickLaw = false;
-      } else {
-        if (hasThickLaw || currentVolume.length >= 3) {
-          volumes.push([...currentVolume]);
-          currentVolume = [law];
-          hasThickLaw = law.thickness === 'high';
-        } else {
-          currentVolume.push(law);
-          if (law.thickness === 'high') hasThickLaw = true;
-        }
+    // Función para determinar el grosor dominante en un volumen
+    const getDominantThickness = (laws: Law[]): 'low' | 'medium' | 'high' | 'very_high' => {
+      if (laws.some(law => law.thickness === 'very_high')) return 'very_high';
+      if (laws.some(law => law.thickness === 'high')) return 'high';
+      if (laws.some(law => law.thickness === 'medium')) return 'medium';
+      return 'low';
+    };
+
+    // Función para obtener el límite de leyes según el grosor
+    const getMaxLawsForThickness = (thickness: string): number => {
+      switch (thickness) {
+        case 'very_high': return 1;
+        case 'high': return 2;
+        case 'medium': return 3;
+        case 'low': return 6;
+        default: return 6;
       }
+    };
+
+    // Ordenar las leyes por grosor (de más gruesas a más delgadas)
+    const sortedLaws = [...selectedLaws].sort((a, b) => {
+      const thicknessOrder: Record<string, number> = {
+        'very_high': 0,
+        'high': 1,
+        'medium': 2,
+        'low': 3
+      };
+      return thicknessOrder[a.thickness] - thicknessOrder[b.thickness];
     });
 
+    for (const law of sortedLaws) {
+      // Si es una ley muy gruesa, va en un volumen aparte
+      if (law.thickness === 'very_high') {
+        if (currentVolume.length > 0) {
+          volumes.push([...currentVolume]);
+          currentVolume = [];
+          currentVolumeThickness = null;
+        }
+        volumes.push([law]);
+        continue;
+      }
+
+      // Si el volumen está vacío, inicializamos con la ley actual
+      if (currentVolume.length === 0) {
+        currentVolume.push(law);
+        currentVolumeThickness = law.thickness;
+        continue;
+      }
+
+      // Verificar si podemos agregar la ley al volumen actual
+      const potentialVolume = [...currentVolume, law];
+      const dominantThickness = getDominantThickness(potentialVolume);
+      const maxLaws = getMaxLawsForThickness(dominantThickness);
+
+      if (potentialVolume.length <= maxLaws) {
+        // Si no excedemos el límite, agregamos la ley al volumen actual
+        currentVolume.push(law);
+        currentVolumeThickness = dominantThickness;
+      } else {
+        // Si excedemos el límite, creamos un nuevo volumen
+        volumes.push([...currentVolume]);
+        currentVolume = [law];
+        currentVolumeThickness = law.thickness;
+      }
+    }
+
+    // Agregar el último volumen si no está vacío
     if (currentVolume.length > 0) {
       volumes.push(currentVolume);
     }
+
     return volumes;
   };
 
