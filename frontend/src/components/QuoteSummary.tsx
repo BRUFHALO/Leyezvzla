@@ -91,7 +91,7 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
       
       // Mostrar toast de éxito
       toast.success('Cotización creada con éxito. Nos contactaremos en la brevedad.', {
-        duration: 5000,
+        duration: 7000,
         position: 'top-right',
         style: {
           background: '#10B981',
@@ -130,7 +130,7 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
     } catch (error) {
       console.error('Error al guardar cotización:', error);
       toast.error('Error al guardar la cotización. Por favor, intente nuevamente.', {
-        duration: 5000,
+        duration: 7000,
         position: 'top-right'
       });
     } finally {
@@ -166,10 +166,10 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({
     // Función para obtener el límite de leyes según el grosor
     const getMaxLawsForThickness = (thickness: string): number => {
       switch (thickness) {
-        case 'very_high': return 1;
-        case 'high': return 2;
-        case 'medium': return 3;
-        case 'low': return 6;
+        case 'very_high': return 2;
+        case 'high': return 3;
+        case 'medium': return 6;
+        case 'low': return 16;
         default: return 6;
       }
     };

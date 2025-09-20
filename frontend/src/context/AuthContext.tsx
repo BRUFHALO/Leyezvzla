@@ -83,6 +83,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (savedToken && savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
+        
+        // Verificar si el usuario está activo al cargar desde localStorage
+        if (!parsedUser.is_active) {
+          console.log('Usuario inactivo detectado, cerrando sesión...');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          setIsLoading(false);
+          return;
+        }
+        
         setToken(savedToken);
         setUser(parsedUser);
       } catch (error) {
@@ -106,6 +116,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       const { access_token, user: userData } = response.data;
+      
+      // Verificar si el usuario está activo
+      if (!userData.is_active) {
+        setError('Esta cuenta está desactivada. Por favor, contacte al administrador.');
+        setIsLoading(false);
+        return false;
+      }
       
       setToken(access_token);
       setUser(userData);

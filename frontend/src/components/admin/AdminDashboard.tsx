@@ -13,7 +13,8 @@ import { UserManagement } from './UserManagement';
 import { BookIcon, CreditCardIcon, HomeIcon, LogOutIcon, UsersIcon, PackageIcon, UserIcon, SettingsIcon } from 'lucide-react';
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'laws' | 'payments' | 'customers' | 'encuadernacion' | 'delivered' | 'profile' | 'users'>('laws');
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const isAdmin = user?.is_admin === true;
   const navigate = useNavigate();
   const handleLogout = () => {
     logout();
@@ -84,10 +85,12 @@ export const AdminDashboard: React.FC = () => {
               <CreditCardIcon size={18} className="mr-1.5" />
               Opciones de Pago
             </button>
-            <button onClick={() => setActiveTab('customers')} className={`px-4 py-2 font-medium text-sm flex items-center ${activeTab === 'customers' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-              <UsersIcon size={18} className="mr-1.5" />
-              Cotizaciones de Clientes
-            </button>
+            {isAdmin && (
+              <button onClick={() => setActiveTab('customers')} className={`px-4 py-2 font-medium text-sm flex items-center ${activeTab === 'customers' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                <UsersIcon size={18} className="mr-1.5" />
+                Cotizaciones de Clientes
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('encuadernacion')}
               className={`px-4 py-2 font-medium text-sm flex items-center ${
@@ -97,15 +100,17 @@ export const AdminDashboard: React.FC = () => {
               <PackageIcon size={18} className="mr-1.5" />
               Encuadernación
             </button>
-            <button
-              onClick={() => setActiveTab('delivered')}
-              className={`px-4 py-2 font-medium text-sm flex items-center ${
-                activeTab === 'delivered' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <PackageIcon size={18} className="mr-1.5" />
-              Entregadas
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('delivered')}
+                className={`px-4 py-2 font-medium text-sm flex items-center ${
+                  activeTab === 'delivered' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <PackageIcon size={18} className="mr-1.5" />
+                Entregadas
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('profile')}
               className={`px-4 py-2 font-medium text-sm flex items-center ${
@@ -115,15 +120,17 @@ export const AdminDashboard: React.FC = () => {
               <UserIcon size={18} className="mr-1.5" />
               Mi Perfil
             </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`px-4 py-2 font-medium text-sm flex items-center ${
-                activeTab === 'users' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <SettingsIcon size={18} className="mr-1.5" />
-              Gestión de Usuarios
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`px-4 py-2 font-medium text-sm flex items-center ${
+                  activeTab === 'users' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <SettingsIcon size={18} className="mr-1.5" />
+                Gestión de Usuarios
+              </button>
+            )}
           </div>
         </div>
         {activeTab === 'laws' && <AdminLawCatalog />}

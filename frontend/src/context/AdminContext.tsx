@@ -74,9 +74,9 @@ export interface CustomerSelection {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 const createSampleCustomerSelection = (): CustomerSelection => {
-  const sampleLaws = [
-    { id: 1, name: 'CONSTITUCIÓN', price: 10, thickness: 'high' },
-    { id: 3, name: 'CÓDIGO PENAL', price: 10, thickness: 'high' }
+  const sampleLaws: Law[] = [
+    { id: 1, name: 'CONSTITUCIÓN', price: 10, thickness: 'high' } as const,
+    { id: 3, name: 'CÓDIGO PENAL', price: 10, thickness: 'high' } as const
   ];
 
   const totalPrice = sampleLaws.reduce((sum, law) => sum + law.price, 0);

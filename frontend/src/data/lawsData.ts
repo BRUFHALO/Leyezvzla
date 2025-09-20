@@ -143,4 +143,4 @@ export const getLawsWithMongoIds = async (): Promise<(Law & { mongoId: string })
 };
 
 // Leyes que requieren volúmenes separados
-export const thickLawIds: number[] = [28];
+export const thickLawIds: number[] = [];
