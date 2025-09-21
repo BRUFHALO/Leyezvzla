@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../context/AdminContext';
 import { Law } from '../../data/lawsData';
 import { thicknessOptions } from '../../data/adminData';
-import { PlusIcon, PencilIcon, TrashIcon, SaveIcon, XIcon, RefreshCwIcon } from 'lucide-react';
+import { PlusIcon, PencilIcon, TrashIcon, SaveIcon, XIcon, RefreshCwIcon, CheckSquare, Square } from 'lucide-react';
 
 export const AdminLawCatalog: React.FC = () => {
   const {
@@ -21,6 +21,12 @@ export const AdminLawCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const [editingLaw, setEditingLaw] = useState<{ law: Law; mongoId: string } | null>(null);
+  const [selectedLaws, setSelectedLaws] = useState<Set<string>>(new Set());
+  const [batchEditMode, setBatchEditMode] = useState(false);
+  const [batchEditValues, setBatchEditValues] = useState<{
+    price?: number;
+    thickness?: 'low' | 'medium' | 'high' | 'very_high';
+  }>({});
   const [newLaw, setNewLaw] = useState<Omit<Law, 'id'>>({
     name: '',
     price: 0,
@@ -36,7 +42,11 @@ export const AdminLawCatalog: React.FC = () => {
 
   const getMongoIdForLaw = (lawId: number): string => {
     const lawWithId = lawsWithMongoIds.find(law => law.id === lawId);
-    return lawWithId?.mongoId || '';
+    if (!lawWithId || !lawWithId.mongoId) {
+      console.warn(`No se encontró el ID de MongoDB para la ley con ID: ${lawId}`);
+      return '';
+    }
+    return lawWithId.mongoId;
   };
 
   const handleEdit = (law: Law) => {
@@ -69,6 +79,85 @@ export const AdminLawCatalog: React.FC = () => {
     } catch (error: any) {
       setSaveStatus('error');
       setErrorMessage(error.message || 'Error al actualizar la ley');
+    }
+  };
+
+  const toggleLawSelection = (mongoId: string) => {
+    setSelectedLaws(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(mongoId)) {
+        newSelection.delete(mongoId);
+      } else {
+        newSelection.add(mongoId);
+      }
+      console.log('Leyes seleccionadas:', Array.from(newSelection)); // Para depuración
+      return newSelection;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLaws.size === filteredLaws.length) {
+      setSelectedLaws(new Set());
+    } else {
+      const allIds = new Set<string>();
+      filteredLaws.forEach(law => {
+        const mongoId = getMongoIdForLaw(law.id);
+        if (mongoId) {
+          allIds.add(mongoId);
+        }
+      });
+      console.log('Seleccionando todas las leyes:', Array.from(allIds)); // Para depuración
+      setSelectedLaws(allIds);
+    }
+  };
+
+  const handleBatchEdit = () => {
+    if (selectedLaws.size > 0) {
+      setBatchEditMode(true);
+      setBatchEditValues({});
+      console.log('Iniciando edición por lotes para:', selectedLaws.size, 'leyes');
+    } else {
+      setErrorMessage('Seleccione al menos una ley para editar');
+    }
+  };
+
+  const cancelBatchEdit = () => {
+    setBatchEditMode(false);
+    setSelectedLaws(new Set());
+    setBatchEditValues({});
+  };
+
+  const applyBatchEdit = async () => {
+    if (selectedLaws.size === 0) {
+      setErrorMessage('Seleccione al menos una ley para editar');
+      return;
+    }
+
+    setSaveStatus('saving');
+    setErrorMessage('');
+
+    try {
+      const updates = Array.from(selectedLaws).map(async (mongoId) => {
+        const law = laws.find(l => getMongoIdForLaw(l.id) === mongoId);
+        if (law) {
+          const updatedLaw = {
+            ...law,
+            price: batchEditValues.price !== undefined ? batchEditValues.price : law.price,
+            thickness: batchEditValues.thickness !== undefined ? batchEditValues.thickness : law.thickness
+          };
+          await updateLaw(updatedLaw, mongoId);
+        }
+      });
+
+      await Promise.all(updates);
+      setSaveStatus('success');
+      setBatchEditMode(false);
+      setSelectedLaws(new Set());
+      setBatchEditValues({});
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (error: any) {
+      setSaveStatus('error');
+      setErrorMessage(error.message || 'Error al actualizar las leyes');
     }
   };
 
@@ -164,6 +253,22 @@ export const AdminLawCatalog: React.FC = () => {
     );
   }
 
+  const filteredLaws = laws
+    .filter(law => {
+      if (searchTerm === '') return true;
+      
+      // Normalizar el texto de búsqueda y el nombre de la ley
+      const normalizeText = (text: string) => 
+        text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      
+      const searchTermNormalized = normalizeText(searchTerm);
+      const lawNameNormalized = normalizeText(law.name);
+      
+      return lawNameNormalized.includes(searchTermNormalized);
+    });
+
+  const selectedCount = selectedLaws.size;
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       {saveStatus === 'success' && (
@@ -180,8 +285,53 @@ export const AdminLawCatalog: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-800">
           Administrar Catálogo de Leyes
+          {selectedCount > 0 && (
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              ({selectedCount} seleccionada{selectedCount !== 1 ? 's' : ''})
+            </span>
+          )}
         </h2>
         <div className="flex space-x-2">
+<button
+            onClick={() => {
+              if (!batchEditMode) {
+                // Si no estamos en modo edición, activarlo
+                setBatchEditMode(true);
+              } else {
+                // Si ya estamos en modo edición, manejar la edición
+                handleBatchEdit();
+              }
+            }}
+            className={`flex items-center px-3 py-2 ${
+              batchEditMode 
+                ? 'bg-yellow-600 hover:bg-yellow-700' 
+                : 'bg-yellow-500 hover:bg-yellow-600'
+            } text-white rounded-md transition-colors`}
+          >
+            <PencilIcon size={16} className="mr-1" />
+            {batchEditMode 
+              ? `Editando ${selectedCount} leyes` 
+              : 'Editar por lotes'}
+          </button>
+          {batchEditMode && (
+            <>
+              <button
+                onClick={cancelBatchEdit}
+                className="flex items-center px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+              >
+                <XIcon size={16} className="mr-1" />
+                Cancelar
+              </button>
+              <button
+                onClick={applyBatchEdit}
+                disabled={saveStatus === 'saving'}
+                className="flex items-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <SaveIcon size={16} className="mr-1" />
+                Aplicar cambios
+              </button>
+            </>
+          )}
           <button
             onClick={refreshLaws}
             disabled={saveStatus === 'saving'}
@@ -297,12 +447,71 @@ export const AdminLawCatalog: React.FC = () => {
         </div>
       )}
 
+      {batchEditMode && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <h3 className="text-lg font-medium text-yellow-800 mb-3">Edición por lotes</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Precio ($)
+              </label>
+              <input
+                type="number"
+                value={batchEditValues.price || ''}
+                onChange={e => setBatchEditValues({
+                  ...batchEditValues,
+                  price: e.target.value ? Number(e.target.value) : undefined
+                })}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                min="0"
+                step="0.01"
+                placeholder="Dejar en blanco para no modificar"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Grosor
+              </label>
+              <select
+                value={batchEditValues.thickness || ''}
+                onChange={e => setBatchEditValues({
+                  ...batchEditValues,
+                  thickness: e.target.value as 'low' | 'medium' | 'high' | 'very_high' | undefined
+                })}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              >
+                <option value="">No modificar</option>
+                {thicknessOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
+                {batchEditMode ? (
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-gray-600 hover:text-gray-800"
+                    title={selectedLaws.size === filteredLaws.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                  >
+                    {selectedLaws.size === filteredLaws.length ? (
+                      <CheckSquare size={16} className="text-blue-600" />
+                    ) : (
+                      <Square size={16} className="text-gray-400" />
+                    )}
+                  </button>
+                ) : (
+                  'ID'
+                )}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Nombre
@@ -322,25 +531,36 @@ export const AdminLawCatalog: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {laws
-              .filter(law => {
-                if (searchTerm === '') return true;
-                
-                // Normalizar el texto de búsqueda y el nombre de la ley
-                const normalizeText = (text: string) => 
-                  text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                
-                const searchTermNormalized = normalizeText(searchTerm);
-                const lawNameNormalized = normalizeText(law.name);
-                
-                return lawNameNormalized.includes(searchTermNormalized);
-              })
-              .map(law => {
+            {filteredLaws.map(law => {
               const isEditing = editingLaw?.law.id === law.id;
               return (
-                <tr key={law.id} className={isEditing ? 'bg-blue-50' : ''}>
+                <tr key={law.id} className={`${isEditing ? 'bg-blue-50' : ''} ${selectedLaws.has(getMongoIdForLaw(law.id)) ? 'bg-yellow-50' : ''}`}>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                    {law.id}
+                    {batchEditMode ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const mongoId = getMongoIdForLaw(law.id);
+                          if (mongoId) {
+                            toggleLawSelection(mongoId);
+                          }
+                        }}
+                        className={`flex items-center justify-center w-5 h-5 rounded border ${
+                          selectedLaws.has(getMongoIdForLaw(law.id)) 
+                            ? 'bg-blue-500 border-blue-500' 
+                            : 'border-gray-300 hover:border-gray-400'
+                        } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                      >
+                        {selectedLaws.has(getMongoIdForLaw(law.id)) && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                    ) : (
+                      law.id
+                    )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {isEditing ? (
@@ -403,7 +623,7 @@ export const AdminLawCatalog: React.FC = () => {
                       checked={veryThickLawIds.includes(law.id)}
                       onChange={e => handleVeryThickChange(law.id, e.target.checked)}
                       className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      disabled={saveStatus === 'saving'}
+                      disabled={saveStatus === 'saving' || batchEditMode}
                     />
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
@@ -430,17 +650,17 @@ export const AdminLawCatalog: React.FC = () => {
                       <div className="flex justify-end space-x-2">
                         <button
                           onClick={() => handleEdit(law)}
-                          disabled={saveStatus === 'saving'}
-                          className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                          title="Editar"
+                          disabled={saveStatus === 'saving' || batchEditMode}
+                          className="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={batchEditMode ? 'Termine la edición por lotes primero' : 'Editar'}
                         >
                           <PencilIcon size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(law.id)}
-                          disabled={saveStatus === 'saving'}
-                          className="text-red-600 hover:text-red-800 disabled:opacity-50"
-                          title="Eliminar"
+                          disabled={saveStatus === 'saving' || batchEditMode}
+                          className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={batchEditMode ? 'Termine la edición por lotes primero' : 'Eliminar'}
                         >
                           <TrashIcon size={16} />
                         </button>
