@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Verificar si el usuario está activo al cargar desde localStorage
         if (!parsedUser.is_active) {
-          console.log('Usuario inactivo detectado, cerrando sesión...');
+         
           localStorage.removeItem('auth_token');
           localStorage.removeItem('auth_user');
           setIsLoading(false);

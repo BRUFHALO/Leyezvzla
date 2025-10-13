@@ -184,9 +184,9 @@ export const AdminProvider: React.FC<{
   // Funciones para encuadernación
   const loadEncuadernaciones = async (): Promise<void> => {
     try {
-      console.log('Cargando encuadernaciones...');
+    
       const encuadernacionesData = await getEncuadernacionesFromBackend();
-      console.log('Encuadernaciones cargadas:', encuadernacionesData);
+     
       setEncuadernaciones(encuadernacionesData);
     } catch (error: any) {
       console.error('Error al cargar encuadernaciones:', error);
