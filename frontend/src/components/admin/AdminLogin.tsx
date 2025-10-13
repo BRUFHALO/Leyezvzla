@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LockIcon, UserIcon, MailIcon } from 'lucide-react';
+import { LockIcon, UserIcon } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
+  const [resetUsername, setResetUsername] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const { login, error, clearError, requestPasswordReset } = useAuth();
   const navigate = useNavigate();
@@ -31,10 +31,10 @@ export const AdminLogin: React.FC = () => {
     setResetMessage('');
     clearError();
     
-    const success = await requestPasswordReset(resetEmail);
+    const success = await requestPasswordReset(resetUsername);
     if (success) {
-      setResetMessage('Se ha enviado un enlace de recuperación a su correo electrónico.');
-      setResetEmail('');
+      setResetMessage('Se ha enviado una contraseña temporal por Telegram al administrador.');
+      setResetUsername('');
     }
     setIsLoading(false);
   };
@@ -97,21 +97,22 @@ export const AdminLogin: React.FC = () => {
         ) : (
           <form onSubmit={handleForgotPassword}>
             <div className="mb-4">
-              <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                Correo Electrónico
+              <label htmlFor="resetUsername" className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre de Usuario
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <MailIcon size={18} className="text-gray-400" />
+                  <UserIcon size={18} className="text-gray-400" />
                 </div>
                 <input 
-                  id="resetEmail" 
-                  type="email" 
-                  value={resetEmail} 
-                  onChange={e => setResetEmail(e.target.value)} 
+                  id="resetUsername" 
+                  type="text" 
+                  value={resetUsername} 
+                  onChange={e => setResetUsername(e.target.value)} 
                   className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                  placeholder="tucorreo@gmail.com" 
+                  placeholder="Ingresa tu nombre de usuario" 
                   required 
+                  minLength={3}
                 />
               </div>
             </div>
@@ -120,7 +121,7 @@ export const AdminLogin: React.FC = () => {
               disabled={isLoading}
               className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white py-2 px-4 rounded-md transition-colors font-medium"
             >
-              {isLoading ? 'Enviando...' : 'Enviar contraseña de recuperación'}
+              {isLoading ? 'Enviando...' : 'Solicitar recuperación'}
             </button>
           </form>
         )}

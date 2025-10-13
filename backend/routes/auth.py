@@ -142,14 +142,14 @@ def get_auth_routes(users_collection: Collection) -> APIRouter:
     async def request_password_reset(request: PasswordResetRequestSchema):
         """Solicitar recuperación de contraseña"""
         try:
-            print(f"🔄 Procesando solicitud de recuperación para: {request.email}")
-            success = auth_service.request_password_reset(request.email)
+            print(f"🔄 Procesando solicitud de recuperación para: {request.username}")
+            success = auth_service.request_password_reset(request.username)
             print(f"✅ Resultado de la solicitud: {success}")
             
             if success:
-                return {"message": "Se ha enviado una contraseña temporal a tu correo electrónico"}
+                return {"message": "Se ha enviado una contraseña temporal por Telegram al administrador"}
             else:
-                return {"message": "Si el email existe, recibirás instrucciones para restablecer tu contraseña"}
+                return {"message": "Si el usuario existe, se enviará una contraseña temporal por Telegram"}
             
         except Exception as e:
             # Log del error completo para debugging

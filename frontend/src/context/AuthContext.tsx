@@ -23,7 +23,7 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   clearError: () => void;
-  requestPasswordReset: (email: string) => Promise<boolean>;
+  requestPasswordReset: (username: string) => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
@@ -158,18 +158,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
   };
 
-  const requestPasswordReset = async (email: string): Promise<boolean> => {
+  const requestPasswordReset = async (username: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       setError(null);
       
       const response = await axios.post(`${API_BASE_URL}/auth/password-reset-request`, {
-        email
+        username
       });
       
       return response.status === 200;
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Error al solicitar recuperación de contraseña');
+      // Manejar errores de validación de Pydantic (422)
+      if (error.response?.status === 422) {
+        const validationErrors = error.response?.data?.detail;
+        if (Array.isArray(validationErrors)) {
+          const errorMessages = validationErrors.map((err: any) => err.msg).join(', ');
+          setError(errorMessages);
+        } else {
+          setError('Error de validación en los datos enviados');
+        }
+      } else {
+        setError(error.response?.data?.detail || 'Error al solicitar recuperación de contraseña');
+      }
       return false;
     } finally {
       setIsLoading(false);

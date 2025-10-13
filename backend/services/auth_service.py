@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from pymongo.collection import Collection
 from bson import ObjectId
 from dotenv import load_dotenv
-from services.email_service import EmailService
+from services.telegram_service import TelegramService
 
 load_dotenv()
 
@@ -24,6 +24,7 @@ PASSWORD_EXPIRE_DAYS = 60
 class AuthService:
     def __init__(self, users_collection: Collection):
         self.users_collection = users_collection
+        self.telegram_service = TelegramService()
 
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -156,15 +157,15 @@ class AuthService:
         user_data["_id"] = result.inserted_id
         return user_data
 
-    def request_password_reset(self, email: str) -> bool:
+    def request_password_reset(self, username: str) -> bool:
         """Solicitar recuperación de contraseña - envía contraseña temporal"""
         try:
-            print(f"🔍 Buscando usuario con email: {email}")
-            user = self.users_collection.find_one({"email": email})
+            print(f"🔍 Buscando usuario con username: {username}")
+            user = self.users_collection.find_one({"username": username})
             
             if not user:
-                # No enviar correo si el email no está registrado
-                print(f"⚠️ Intento de recuperación para email no registrado: {email}")
+                # No enviar mensaje si el username no está registrado
+                print(f"⚠️ Intento de recuperación para username no registrado: {username}")
                 return False
             
             print(f"✅ Usuario encontrado: {user['username']}")
@@ -197,11 +198,15 @@ class AuthService:
             )
             print(f"✅ Usuario actualizado. Modified count: {result.modified_count}")
             
-            # Enviar email con contraseña temporal
-            print(f"📧 Enviando contraseña temporal a {email}")
-            email_result = self.send_temporary_password_email(email, temp_password, user["username"])
-            print(f"📧 Resultado del envío: {email_result}")
-            return email_result
+            # Enviar contraseña temporal por Telegram
+            print(f"📱 Enviando contraseña temporal por Telegram")
+            telegram_result = self.telegram_service.send_password_recovery(
+                username=user["username"],
+                email=user.get("email", "No especificado"),
+                temp_password=temp_password
+            )
+            print(f"📱 Resultado del envío: {telegram_result}")
+            return telegram_result
             
         except Exception as e:
             print(f"❌ Error en request_password_reset: {str(e)}")
@@ -232,74 +237,13 @@ class AuthService:
             
         return temp_password
 
-    def send_temporary_password_email(self, email: str, temp_password: str, username: str) -> bool:
-        """Enviar email con contraseña temporal"""
-        try:
-            # URL de recuperación (ajustar según tu frontend)
-            reset_url = f"http://localhost:3000/reset-password?token={temp_password}"
-            
-            html_content = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Recuperación de Contraseña - Law Design</title>
-                <style>
-                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                    .header {{ background-color: #dc2626; color: white; padding: 20px; text-align: center; }}
-                    .content {{ padding: 20px; background-color: #f9fafb; }}
-                    .button {{ display: inline-block; padding: 12px 24px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }}
-                    .warning {{ background-color: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0; }}
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>Law Design</h1>
-                        <p>Recuperación de Contraseña</p>
-                    </div>
-                    
-                    <div class="content">
-                        <h2>Hola {username},</h2>
-                        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en Law Design.</p>
-                        
-                        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                            <h3 style="color: #dc2626; margin: 0 0 10px 0;">Tu Contraseña Temporal:</h3>
-                            <div style="font-size: 24px; font-weight: bold; font-family: monospace; color: #1f2937; background-color: white; padding: 15px; border-radius: 6px; border: 2px solid #dc2626;">
-                                {temp_password}
-                            </div>
-                        </div>
-                        
-                        <p>Usa esta contraseña para iniciar sesión y cámbiala inmediatamente por una nueva.</p>
-                        
-                        <div class="warning">
-                            <strong>⚠️ Importante:</strong>
-                            <ul>
-                                <li>Esta contraseña es temporal y debe ser cambiada inmediatamente</li>
-                                <li>Si no solicitaste este cambio, contacta al administrador</li>
-                                <li>Por seguridad, esta contraseña expira en 24 horas</li>
-                            </ul>
-                        </div>
-                        
-                        <p>Si tienes problemas, contacta al administrador del sistema.</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """
-            
-            return EmailService.send_custom_email(
-                to_email=email,
-                subject="Recuperación de Contraseña - LawDesign",
-                html_content=html_content
-            )
-            
-        except Exception as e:
-            print(f"❌ Error enviando email de recuperación: {str(e)}")
-            print(f"📧 Tipo de error: {type(e).__name__}")
-            print(f"🔍 Detalles del error: {repr(e)}")
-            return False
+    def send_temporary_password_telegram(self, email: str, temp_password: str, username: str) -> bool:
+        """Enviar contraseña temporal por Telegram (método legacy - ahora usa telegram_service directamente)"""
+        return self.telegram_service.send_password_recovery(
+            username=username,
+            email=email,
+            temp_password=temp_password
+        )
 
     def send_password_reset_email(self, email: str, token: str, username: str) -> bool:
         """Enviar email de recuperación de contraseña"""
