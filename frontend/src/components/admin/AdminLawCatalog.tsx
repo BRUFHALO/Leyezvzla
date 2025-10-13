@@ -286,8 +286,7 @@ export const AdminLawCatalog: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-800">
           Administrar Catálogo de Leyes
           {selectedCount > 0 && (
-            <span className="ml-2 text-sm font-normal text-gray-500">
-              ({selectedCount} seleccionada{selectedCount !== 1 ? 's' : ''})
+            <span className="ml-2 text-sm font-normal text-gray-500">\              ({selectedCount} seleccionada{selectedCount !== 1 ? 's' : ''})
             </span>
           )}
         </h2>
