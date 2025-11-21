@@ -78,8 +78,6 @@ class TelegramService:
 • Debe ser cambiada inmediatamente al iniciar sesión
 • Por seguridad, expira en 24 horas
 
-🌐 <b>Acceder al sistema:</b>
-http://localhost:3000/login
 """
         
         return self.send_message(message)
