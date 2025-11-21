@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, ArrowLeft, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { User, ArrowLeft, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 
 interface PasswordRecoveryFormProps {
@@ -8,7 +8,7 @@ interface PasswordRecoveryFormProps {
 
 export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBack }) => {
   const [step, setStep] = useState<'request' | 'reset'>('request');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [token, setToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -45,14 +45,13 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
     setError('');
     setSuccess('');
 
-    if (!email) {
-      setError('El email es obligatorio');
+    if (!username) {
+      setError('El nombre de usuario es obligatorio');
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Por favor ingresa un email válido');
+    if (username.length < 3) {
+      setError('El nombre de usuario debe tener al menos 3 caracteres');
       return;
     }
 
@@ -60,10 +59,10 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
 
     try {
       await axios.post('http://localhost:8005/auth/password-reset-request', {
-        email: email
+        username: username
       });
 
-      setSuccess('Si el email existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña.');
+      setSuccess('Si el usuario existe, se enviará una contraseña temporal por Telegram al administrador.');
       setTimeout(() => {
         setStep('reset');
         setSuccess('');
@@ -147,7 +146,7 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
               <ArrowLeft size={20} className="text-gray-600" />
             </button>
           )}
-          <Mail className="mr-2 text-blue-600" size={24} />
+          <User className="mr-2 text-blue-600" size={24} />
           <h2 className="text-xl font-bold text-gray-800">Recuperar Contraseña</h2>
         </div>
 
@@ -166,31 +165,31 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
         )}
 
         <p className="text-gray-600 text-sm mb-4">
-          Ingresa tu email y te enviaremos instrucciones para restablecer tu contraseña.
+          Ingresa tu nombre de usuario y se enviará una contraseña temporal por Telegram al administrador.
         </p>
 
         <form onSubmit={handleRequestReset} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre de Usuario
             </label>
             <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="tu@email.com"
+              placeholder="Ingresa tu nombre de usuario"
               disabled={isLoading}
             />
           </div>
 
           <button
             type="submit"
-            disabled={isLoading || !email}
+            disabled={isLoading || !username}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Enviando...' : 'Enviar Instrucciones'}
+            {isLoading ? 'Enviando...' : 'Solicitar Recuperación'}
           </button>
 
           <div className="text-center">
@@ -218,7 +217,7 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
         >
           <ArrowLeft size={20} className="text-gray-600" />
         </button>
-        <Mail className="mr-2 text-blue-600" size={24} />
+        <User className="mr-2 text-blue-600" size={24} />
         <h2 className="text-xl font-bold text-gray-800">Restablecer Contraseña</h2>
       </div>
 
@@ -237,13 +236,13 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
       )}
 
       <p className="text-gray-600 text-sm mb-4">
-        Ingresa el token que recibiste por email y tu nueva contraseña.
+        Ingresa la contraseña temporal que recibiste por Telegram y tu nueva contraseña.
       </p>
 
       <form onSubmit={handleResetPassword} className="space-y-4">
         <div>
           <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
-            Token de Recuperación
+            Contraseña Temporal
           </label>
           <input
             id="token"
@@ -251,7 +250,7 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
             value={token}
             onChange={(e) => setToken(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Ingresa el token recibido por email"
+            placeholder="Ingresa la contraseña temporal recibida por Telegram"
             disabled={isLoading}
           />
         </div>

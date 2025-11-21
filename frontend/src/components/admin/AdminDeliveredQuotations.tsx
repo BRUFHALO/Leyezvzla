@@ -86,12 +86,14 @@ export const AdminDeliveredQuotations: React.FC = () => {
       try {
         setLocalLoading(true);
         await removeQuotation(id);
+        // Forzar una recarga de las cotizaciones para asegurar que la tabla se actualice
+        await loadQuotations();
         if (selectedSelection === id) {
           setSelectedSelection(null);
         }
-        // La tabla se actualiza automáticamente porque removeQuotation actualiza el estado
       } catch (error: any) {
-        alert('Error al eliminar: ' + error.message);
+        console.error('Error al eliminar cotización:', error);
+        alert('Error al eliminar: ' + (error.message || 'Error desconocido'));
       } finally {
         setLocalLoading(false);
       }
