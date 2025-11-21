@@ -57,15 +57,22 @@ export const UserManagement: React.FC = () => {
     }
   };
 
-  const validatePassword = (password: string) => {
+  const getPasswordRequirements = (password: string) => {
     const minLength = password.length >= 8;
     const hasUpper = /[A-Z]/.test(password);
     const hasLower = /[a-z]/.test(password);
     const hasNumber = /\d/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    
-    return minLength && hasUpper && hasLower && hasNumber && hasSpecial;
+
+    return { minLength, hasUpper, hasLower, hasNumber, hasSpecial };
   };
+
+  const isPasswordValid = (password: string) => {
+    const reqs = getPasswordRequirements(password);
+    return reqs.minLength && reqs.hasUpper && reqs.hasLower && reqs.hasNumber && reqs.hasSpecial;
+  };
+
+  const passwordRequirements = getPasswordRequirements(formData.password);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +80,7 @@ export const UserManagement: React.FC = () => {
     setSuccessMessage('');
     clearError();
 
-    if (!validatePassword(formData.password)) {
+    if (!isPasswordValid(formData.password)) {
       alert('La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y caracteres especiales');
       setIsLoading(false);
       return;
@@ -254,6 +261,28 @@ export const UserManagement: React.FC = () => {
                     )}
                   </button>
                 </div>
+                {formData.password && (
+                  <div className="mt-2 text-xs bg-gray-50 p-3 rounded-md">
+                    <p className="font-medium mb-1">La contraseña debe contener:</p>
+                    <ul className="space-y-1">
+                      <li className={passwordRequirements.minLength ? 'text-green-600' : 'text-gray-500'}>
+                        Al menos 8 caracteres
+                      </li>
+                      <li className={passwordRequirements.hasUpper ? 'text-green-600' : 'text-gray-500'}>
+                        Una letra mayúscula
+                      </li>
+                      <li className={passwordRequirements.hasLower ? 'text-green-600' : 'text-gray-500'}>
+                        Una letra minúscula
+                      </li>
+                      <li className={passwordRequirements.hasNumber ? 'text-green-600' : 'text-gray-500'}>
+                        Un número
+                      </li>
+                      <li className={passwordRequirements.hasSpecial ? 'text-green-600' : 'text-gray-500'}>
+                        Un carácter especial (!@#$%^&*(),.?":{}|&lt;&gt;)
+                      </li>
+                    </ul>
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center">

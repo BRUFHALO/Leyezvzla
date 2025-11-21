@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LockIcon, UserIcon, Home } from 'lucide-react';
+import { LockIcon, UserIcon, Home, Eye, EyeOff } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const [resetUsername, setResetUsername] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const { login, error, clearError, requestPasswordReset } = useAuth();
@@ -83,7 +85,26 @@ export const AdminLogin: React.FC = () => {
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <LockIcon size={18} className="text-gray-400" />
               </div>
-              <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="••••••••" required />
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="pl-10 pr-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="••••••••"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3"
+              >
+                {showPassword ? (
+                  <EyeOff size={18} className="text-gray-400 hover:text-gray-600" />
+                ) : (
+                  <Eye size={18} className="text-gray-400 hover:text-gray-600" />
+                )}
+              </button>
             </div>
           </div>
             <button 
