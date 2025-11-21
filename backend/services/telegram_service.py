@@ -82,6 +82,59 @@ class TelegramService:
         
         return self.send_message(message)
     
+    def send_cotizacion_notification(self, cotizacion_data: dict) -> bool:
+        """
+        Envía una notificación de nueva cotización a través de Telegram
+        
+        Args:
+            cotizacion_data: Diccionario con los datos de la cotización
+            
+        Returns:
+            bool: True si se envió correctamente, False en caso contrario
+        """
+        try:
+            # Extraer datos relevantes de la cotización con estructura anidada
+            cliente_info = cotizacion_data.get("cliente", {})
+            cliente_nombre = cliente_info.get("nombre", "No especificado") if isinstance(cliente_info, dict) else str(cliente_info)
+            cliente_email = cliente_info.get("email", "No especificado") if isinstance(cliente_info, dict) else "No especificado"
+            
+            fecha_info = cotizacion_data.get("fecha", {})
+            fecha_completa = fecha_info.get("fecha_completa", "No especificada") if isinstance(fecha_info, dict) else str(fecha_info)
+            
+            resumen_costo = cotizacion_data.get("resumen_costo", {})
+            total = resumen_costo.get("total", 0) if isinstance(resumen_costo, dict) else 0
+            
+            estado = cotizacion_data.get("estado", "pendiente")
+            cotizacion_id = cotizacion_data.get("_id", "No especificado")
+            
+            # Formatear el mensaje según el diseño deseado
+            message = f"""
+📋 <b>NUEVA COTIZACIÓN GENERADA</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👤 <b>Cliente:</b> {cliente_nombre}
+📧 <b>Email:</b> {cliente_email}
+📅 <b>Fecha:</b> {fecha_completa}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💰 <b>Total:</b> ${total}
+🏷️ <b>Estado:</b> {estado}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ <b>Acciones:</b>
+• Revisar detalles completos
+• Contactar al cliente
+• Seguir el proceso de venta
+
+📋 Esta cotización ha sido registrada en el sistema y está lista para su procesamiento.
+            """
+            
+            return self.send_message(message)
+            
+        except Exception as e:
+            print(f"❌ Error enviando notificación de cotización: {str(e)}")
+            return False
+    
     def send_test_message(self) -> bool:
         """
         Envía un mensaje de prueba para verificar la configuración

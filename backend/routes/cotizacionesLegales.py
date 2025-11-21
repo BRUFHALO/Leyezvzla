@@ -1,13 +1,11 @@
-import json
-import os
 from typing import List
-import httpx
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel
 from pymongo.collection import Collection
 
 from schemas.cotizacionesLegales_schemas import CotizacionLegalSchema, LeySchema
+from services.telegram_service import TelegramService
 
 class EstadoUpdate(BaseModel):
     estado: str
@@ -19,9 +17,9 @@ def serialize_datetime(obj):
         return obj.isoformat()
     raise TypeError(f"Tipo {type(obj)} no es serializable")
 
-async def send_n8n_notification(cotizacion_data: dict) -> bool:
+async def send_telegram_notification(cotizacion_data: dict) -> bool:
     """
-    Envía una notificación al webhook de n8n cuando se crea una nueva cotización.
+    Envía una notificación directamente a Telegram cuando se crea una nueva cotización.
     
     Args:
         cotizacion_data: Diccionario con los datos de la cotización
@@ -29,76 +27,47 @@ async def send_n8n_notification(cotizacion_data: dict) -> bool:
     Returns:
         bool: True si la notificación se envió correctamente, False en caso contrario
     """
-    webhook_url = os.getenv("N8N_WEBHOOK_URL")
-    webhook_secret = os.getenv("N8N_WEBHOOK_SECRET", "")
-    
-    if not webhook_url:
-        return False
-    
     try:
-        # Serializar manualmente los datos para manejar correctamente los datetime
-        serialized_data = json.loads(json.dumps(cotizacion_data, default=serialize_datetime))
-        
-        # Preparar los datos para el webhook
-        payload = {
-            "data": serialized_data,
-            "secret": webhook_secret
-        }
-        
-        # Usar ensure_ascii=False para mantener caracteres especiales
-        payload_str = json.dumps(payload, indent=2, ensure_ascii=False, default=serialize_datetime)
-        
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": "LeyesVzla-API/1.0",
-            "Accept": "application/json"
-        }
-        
-        # Configurar timeout (10 segundos de conexión, 30 segundos de espera)
-        timeout = httpx.Timeout(10.0, connect=30.0)
-        
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
-                webhook_url,
-                data=payload_str,  # Usar data en lugar de json para enviar el string ya serializado
-                headers=headers
-            )
-            
-            # Verificar el código de estado HTTP
-            response.raise_for_status()
-            
-            # Verificar si la respuesta es JSON válido
-            response.json()
-            return True
-            
-    except (httpx.HTTPStatusError, httpx.RequestError, TypeError, ValueError, Exception):
-        # Error silenciado intencionalmente
-        pass
-    
-    return False
+        telegram_service = TelegramService()
+        return telegram_service.send_cotizacion_notification(cotizacion_data)
+    except Exception as e:
+        print(f" Error enviando notificación a Telegram: {str(e)}")
+        return False
 
 def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection) -> APIRouter:
     router = APIRouter()
 
-    @router.post("/test-webhook", status_code=status.HTTP_200_OK)
-    async def test_webhook():
-        """Endpoint de prueba para verificar el funcionamiento del webhook"""
+    @router.post("/test-telegram", status_code=status.HTTP_200_OK)
+    async def test_telegram():
+        """Endpoint de prueba para verificar el funcionamiento de las notificaciones de Telegram"""
         test_data = {
-            "test": "Esta es una prueba del webhook",
-            "fecha": "2025-09-15T11:30:00-04:00",
-            "status": "success"
+            "_id": "test_id_12345",
+            "cliente": {
+                "nombre": "Ramon",
+                "email": "roa@gmail.com"
+            },
+            "fecha": {
+                "fecha_completa": "21 de noviembre de 2025, 14:53",
+                "timestamp": "2025-11-21T14:53:00-04:00"
+            },
+            "resumen_costo": {
+                "subtotal_leyes": 20.0,
+                "costo_encuadernacion": 4.0,
+                "total": 24.0
+            },
+            "estado": "pendiente"
         }
         
         try:
-            result = await send_n8n_notification({"test_data": test_data})
+            result = await send_telegram_notification(test_data)
             if result:
-                return {"status": "success", "message": "Notificación enviada correctamente"}
+                return {"status": "success", "message": "Notificación de prueba enviada correctamente a Telegram"}
             else:
-                return {"status": "error", "message": "Error al enviar la notificación"}
+                return {"status": "error", "message": "Error al enviar la notificación de prueba"}
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error al probar el webhook: {str(e)}"
+                detail=f"Error al probar Telegram: {str(e)}"
             )
 
     # --- Cotizaciones ---
@@ -233,9 +202,9 @@ def get_routes(collection_leyes: Collection, collection_cotizaciones: Collection
                 if "_id" in notification_data and isinstance(notification_data["_id"], ObjectId):
                     notification_data["_id"] = str(notification_data["_id"])
                 
-                # Enviar notificación en segundo plano
+                # Enviar notificación directamente a Telegram en segundo plano
                 background_tasks.add_task(
-                    send_n8n_notification,
+                    send_telegram_notification,
                     notification_data
                 )
                 
