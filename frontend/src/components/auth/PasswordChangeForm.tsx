@@ -77,7 +77,7 @@ export const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({
 
     try {
       await axios.post(
-        'http://localhost:8005/auth/change-password',
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8005'}/auth/change-password`,
         {
           current_password: currentPassword,
           new_password: newPassword

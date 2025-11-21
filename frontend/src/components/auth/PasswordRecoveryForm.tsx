@@ -58,7 +58,7 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
     setIsLoading(true);
 
     try {
-      await axios.post('http://localhost:8005/auth/password-reset-request', {
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8005'}/auth/password-reset-request`, {
         username: username
       });
 
@@ -102,7 +102,7 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
     setIsLoading(true);
 
     try {
-      await axios.post('http://localhost:8005/auth/password-reset', {
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8005'}/auth/password-reset`, {
         token: token,
         new_password: newPassword
       });
