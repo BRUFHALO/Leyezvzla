@@ -5,7 +5,7 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminProvider } from './context/AdminContext';
 import { AuthProvider } from './context/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 export function AppRouter() {
   return (

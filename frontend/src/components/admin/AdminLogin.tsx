@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LockIcon, UserIcon } from 'lucide-react';
+import { LockIcon, UserIcon, Home } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -141,7 +141,16 @@ export const AdminLogin: React.FC = () => {
         </div>
         
         {!showForgotPassword && (
-        <p></p>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Volver al Inicio
+            </button>
+          </div>
         )}
       </div>
     </div>

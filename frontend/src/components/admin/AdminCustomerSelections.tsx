@@ -3,10 +3,6 @@ import { useAdmin } from '../../context/AdminContext';
 import { MailIcon, CalendarIcon, SearchIcon, ChevronDownIcon, ChevronUpIcon, TrashIcon, EyeIcon, XIcon, RefreshCwIcon, CheckCircleIcon } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { thicknessOptions } from '../../data/adminData';
-import { deleteQuotationFromBackend } from '../../data/quotationsData';
 
 export const AdminCustomerSelections: React.FC = () => {
   const {
@@ -81,8 +77,9 @@ export const AdminCustomerSelections: React.FC = () => {
     if (window.confirm('¿Estás seguro de eliminar esta cotización?')) {
       const loadingToast = toast.loading('Eliminando cotización...');
       try {
-        await deleteQuotationFromBackend(id);
-        removeQuotation(id);
+        await removeQuotation(id);
+        // Recargar las cotizaciones para asegurar que la tabla se actualice
+        await loadQuotations();
         if (selectedSelection === id) {
           setSelectedSelection(null);
         }
@@ -125,12 +122,6 @@ export const AdminCustomerSelections: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "d 'de' MMMM, yyyy 'a las' HH:mm", {
-      locale: es
-    });
-  };
 
   const getThicknessLabel = (grosor: string) => {
     const thicknessMap: Record<string, string> = {

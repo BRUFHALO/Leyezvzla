@@ -7,7 +7,9 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user, token } = useAuth();
+
+  console.log('🛡️ ProtectedRoute - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', user?.username, 'hasToken:', !!token);
 
   if (isLoading) {
     return (
@@ -21,9 +23,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
+    console.log('❌ Usuario no autenticado, mostrando LoginForm');
     return <LoginForm />;
   }
 
+  console.log('✅ Usuario autenticado, mostrando contenido protegido');
   return <>{children}</>;
 };
 
