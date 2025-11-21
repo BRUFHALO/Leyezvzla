@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Lock, User, Eye, EyeOff, AlertCircle, Home } from 'lucide-react';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -11,6 +12,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading, error, clearError } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +117,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             </div>
           </div>
 
-          <div>
+          <div className="space-y-3">
             <button
               type="submit"
               disabled={isLoading || !username.trim() || !password.trim()}
@@ -129,6 +131,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
               ) : (
                 'Iniciar Sesión'
               )}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Volver al Inicio
             </button>
           </div>
 

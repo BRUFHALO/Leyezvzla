@@ -86,10 +86,10 @@ Este script:
 El mensaje que se envía por Telegram tiene este formato:
 
 ```
-🔐 Recuperación de Contraseña - LeyesVzla
+🔐 Recuperación de Contraseña - LawDesign
 
 👤 Usuario: admin1
-📧 Email: admin@leyesvzla.com
+📧 Email: admin@lawdesign.com
 
 🔑 Contraseña Temporal:
 Test123!@#

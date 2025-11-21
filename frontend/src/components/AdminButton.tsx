@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldIcon, LogOut } from 'lucide-react';
+import { ShieldIcon, LogOut, LayoutDashboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,11 +13,11 @@ export const AdminButton: React.FC = () => {
           Bienvenido, {user.username}
         </span>
         <Link 
-          to="/admin" 
-          className="flex items-center px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
+          to="/admin/dashboard" 
+          className="flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
         >
-          <ShieldIcon size={16} className="mr-1.5" />
-          <span className="text-sm font-medium">Admin</span>
+          <LayoutDashboard size={16} className="mr-1.5" />
+          <span className="text-sm font-medium">Dashboard</span>
         </Link>
         <button
           onClick={logout}
