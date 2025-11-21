@@ -33,7 +33,10 @@ collection_users = db[MONGO_COLLECTION_USERS]
 # CORS
 origins = [
     "http://localhost",
-    "http://localhost:5174"
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "https://estonolohizoelperuanoyeiver.sagumedia.com",  # Tu subdominio de Hostinger
+    "http://estonolohizoelperuanoyeiver.sagumedia.com"   # Por si usa HTTP
 ]
 app.add_middleware(
     CORSMiddleware,
