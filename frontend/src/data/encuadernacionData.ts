@@ -8,7 +8,7 @@ export interface EncuadernacionType {
   fecha_actualizacion?: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8005';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lawdesign.onrender.com';
 
 // Función para obtener todas las encuadernaciones activas
 export const getEncuadernacionesFromBackend = async (): Promise<EncuadernacionType[]> => {
