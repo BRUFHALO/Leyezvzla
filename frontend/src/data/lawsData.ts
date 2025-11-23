@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8005'; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lawdesign.onrender.com';
 
 export interface BackendLaw {
   _id: string;
@@ -58,6 +58,7 @@ export const staticLawsCatalog: Law[] = [{
 // Función para cargar leyes desde el backend
 export const loadLawsFromBackend = async (): Promise<Law[]> => {
   try {
+    console.log("API_BASE_URL",API_BASE_URL);
     const response = await axios.get<BackendLaw[]>(`${API_BASE_URL}/leyes`);
     
     const convertedLaws: Law[] = response.data.map((law, index) => ({
