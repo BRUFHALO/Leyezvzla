@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lawdesign.onrender.com'; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lawdesign.onrender.com';
 
 export interface BackendLaw {
   _id: string;

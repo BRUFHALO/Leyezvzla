@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { UserIcon, MailIcon, PlusIcon, EditIcon, TrashIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lawdesign.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 interface User {
   _id: string;
